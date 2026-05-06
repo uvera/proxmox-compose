@@ -7,6 +7,15 @@
     mode: "0755"
   loop: "{{ deploy_git_apps | default([]) }}"
 
+- name: Ensure managed file parent directories exist
+  ansible.builtin.file:
+    path: "{{ item.1.dest | dirname }}"
+    state: directory
+    owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
+    group: "{{ item.1.group | default(item.0.group | default('root')) }}"
+    mode: "0755"
+  loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
+
 - name: Checkout repositories
   ansible.builtin.git:
     repo: "{{ item.repo }}"
@@ -17,26 +26,36 @@
   when: item.repo is defined
   loop: "{{ deploy_git_apps | default([]) }}"
 
-- name: Write docker-compose file from configuration
+- name: Write inline compose files when provided
   ansible.builtin.copy:
-    content: "{{ item.compose_file_content }}"
     dest: "{{ item.dest }}/{{ item.compose_file_name | default('docker-compose.yaml') }}"
+    content: "{{ item.compose_file_content }}"
     owner: "{{ item.owner | default('root') }}"
     group: "{{ item.group | default('root') }}"
-    mode: "0644"
+    mode: "{{ item.compose_file_mode | default('0644') }}"
   when: item.compose_file_content is defined
   loop: "{{ deploy_git_apps | default([]) }}"
 
-- name: Write .env file from vault-backed content
+- name: Write env files when provided
   ansible.builtin.copy:
+    dest: "{{ item.dest }}/{{ item.env_file_name | default('.env') }}"
     content: "{{ item.env_content }}"
-    dest: "{{ item.dest }}/.env"
     owner: "{{ item.owner | default('root') }}"
     group: "{{ item.group | default('root') }}"
-    mode: "0600"
+    mode: "{{ item.env_file_mode | default('0600') }}"
   no_log: true
   when: item.env_content is defined
   loop: "{{ deploy_git_apps | default([]) }}"
+
+- name: Write managed files for app stacks
+  ansible.builtin.copy:
+    dest: "{{ item.1.dest }}"
+    content: "{{ item.1.content }}"
+    owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
+    group: "{{ item.1.group | default(item.0.group | default('root')) }}"
+    mode: "{{ item.1.mode | default('0644') }}"
+  loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
+  no_log: "{{ item.1.secret | default(false) }}"
 
 - name: Deploy compose stacks
   community.docker.docker_compose_v2:
