@@ -1,0 +1,26 @@
+- name: Install Debian packages for LXC services
+  ansible.builtin.apt:
+    update_cache: true
+    name: "{{ lxc_packages }}"
+    state: present
+
+- name: Deploy app repositories for service workloads
+  ansible.builtin.include_role:
+    name: deploy_git_app
+  vars:
+    deploy_git_apps: "{{ lxc_git_apps }}"
+
+- name: Install systemd unit files
+  ansible.builtin.template:
+    src: service.j2
+    dest: "/etc/systemd/system/{{ item.name }}.service"
+    mode: "0644"
+  loop: "{{ lxc_systemd_services }}"
+  notify: Restart LXC services
+
+- name: Enable and start services
+  ansible.builtin.service:
+    name: "{{ item.name }}"
+    enabled: true
+    state: started
+  loop: "{{ lxc_systemd_services }}"

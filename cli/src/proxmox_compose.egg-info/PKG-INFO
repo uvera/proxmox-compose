@@ -1,0 +1,36 @@
+Metadata-Version: 2.4
+Name: proxmox-compose
+Version: 0.1.0
+Summary: Composable Proxmox VM/LXC provisioning with Terraform and Ansible.
+Author: Proxmox Compose Contributors
+License: MIT
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3 :: Only
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Environment :: Console
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: typer>=0.12.3
+Requires-Dist: PyYAML>=6.0.1
+Provides-Extra: dev
+Requires-Dist: pytest>=8.2.0; extra == "dev"
+
+# proxmox-compose CLI
+
+Install locally for development:
+
+```bash
+pip install -e .
+```
+
+Install system-wide with pipx:
+
+```bash
+pipx install .
+```
+
+Show commands:
+
+```bash
+proxmox-compose --help
+```

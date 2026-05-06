@@ -1,0 +1,43 @@
+proxmox_endpoint = "https://proxmox.local:8006/api2/json"
+proxmox_username = "root@pam"
+proxmox_password = "change-me"
+proxmox_insecure = true
+allowed_nodes    = ["pve1", "pve2"]
+default_vm_datastore_id  = "local-lvm"
+default_lxc_datastore_id = "local-lvm"
+
+vms = [
+  {
+    name        = "frigate-vm"
+    node_name   = "pve1"
+    vm_id       = 201
+    template_id = 9001
+    os          = "debian"
+    ansible_host = "frigate-vm.local"
+    ansible_user = "debian"
+    cpu_cores   = 4
+    memory_mb   = 8192
+    disk_gb     = 64
+    bridge      = "vmbr0"
+    datastore_id = "local-lvm"
+    started      = true
+    tags         = ["homelab", "vm", "frigate"]
+  },
+]
+
+debian_lxcs = [
+  {
+    name             = "postgres-lxc"
+    node_name        = "pve1"
+    vm_id            = 301
+    template_file_id = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+    ansible_host     = "postgres-lxc.local"
+    ansible_user     = "root"
+    cores            = 2
+    memory_mb        = 2048
+    disk_gb          = 24
+    bridge           = "vmbr0"
+    datastore_id     = "local-lvm"
+    started          = true
+  },
+]

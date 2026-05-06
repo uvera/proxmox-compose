@@ -1,0 +1,7 @@
+lxc_packages:
+  - postgresql
+  - redis-server
+
+lxc_git_apps: []
+
+lxc_systemd_services: []

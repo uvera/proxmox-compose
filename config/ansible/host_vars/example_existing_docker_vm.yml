@@ -1,0 +1,16 @@
+# Example host_vars for an existing Docker VM.
+# Rename this file to match your inventory host name, for example:
+# config/ansible/host_vars/frigate_vm.yml
+
+vm_compose_apps:
+  - dest: "/opt/frigate"
+    owner: "root"
+    group: "root"
+    compose: true
+    compose_file_name: "docker-compose.yaml"
+    compose_file_content: |
+      services:
+        frigate:
+          image: ghcr.io/blakeblackshear/frigate:0.17.1
+          restart: unless-stopped
+    env_content: "{{ frigate_env_content }}"

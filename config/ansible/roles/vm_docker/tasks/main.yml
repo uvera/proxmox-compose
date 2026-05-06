@@ -1,0 +1,27 @@
+- name: Install Docker on Debian
+  ansible.builtin.apt:
+    name:
+      - docker.io
+      - docker-compose-plugin
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Install Docker on Fedora
+  ansible.builtin.dnf:
+    name:
+      - docker
+      - docker-compose
+    state: present
+  when: ansible_distribution == "Fedora"
+
+- name: Ensure docker service enabled
+  ansible.builtin.service:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Deploy compose applications
+  ansible.builtin.include_role:
+    name: deploy_git_app
+  vars:
+    deploy_git_apps: "{{ vm_compose_apps }}"

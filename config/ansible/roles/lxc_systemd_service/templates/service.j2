@@ -1,0 +1,15 @@
+[Unit]
+Description={{ item.description | default(item.name) }}
+After=network-online.target
+
+[Service]
+Type=simple
+User={{ item.user | default('root') }}
+WorkingDirectory={{ item.working_dir | default('/') }}
+ExecStart={{ item.exec_start }}
+Restart=always
+RestartSec=5
+Environment={{ item.environment | default('') }}
+
+[Install]
+WantedBy=multi-user.target

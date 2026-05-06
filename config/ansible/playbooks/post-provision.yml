@@ -1,0 +1,17 @@
+- name: Configure provisioned VMs and LXCs
+  hosts: debian_vms:fedora_vms:debian_lxcs
+  become: true
+  roles:
+    - role: common
+
+- name: Configure Docker workloads on VMs
+  hosts: debian_vms:fedora_vms
+  become: true
+  roles:
+    - role: vm_docker
+
+- name: Configure systemd services on Debian LXCs
+  hosts: debian_lxcs
+  become: true
+  roles:
+    - role: lxc_systemd_service

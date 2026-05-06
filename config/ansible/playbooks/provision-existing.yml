@@ -1,0 +1,12 @@
+- name: Converge existing infrastructure
+  hosts: existing_hosts
+  become: true
+  roles:
+    - role: common
+    - role: existing_maintenance
+
+- name: Converge Docker workloads on existing VMs
+  hosts: existing_docker_vms
+  become: true
+  roles:
+    - role: vm_docker

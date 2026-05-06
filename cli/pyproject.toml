@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "proxmox-compose"
+version = "0.1.0"
+description = "Composable Proxmox VM/LXC provisioning with Terraform and Ansible."
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Proxmox Compose Contributors"}]
+requires-python = ">=3.11"
+dependencies = [
+  "typer>=0.12.3",
+  "PyYAML>=6.0.1",
+]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: MIT License",
+  "Environment :: Console",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.2.0",
+]
+
+[project.scripts]
+proxmox-compose = "proxmox_compose.cli:app"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,6 @@
+- name: Restart LXC services
+  ansible.builtin.systemd:
+    daemon_reload: true
+    name: "{{ item.name }}"
+    state: restarted
+  loop: "{{ lxc_systemd_services }}"

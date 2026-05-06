@@ -1,0 +1,12 @@
+all:
+  children:
+    debian_vms:
+      hosts: {}
+    fedora_vms:
+      hosts: {}
+    debian_lxcs:
+      hosts: {}
+    existing_hosts:
+      hosts: {}
+    existing_docker_vms:
+      hosts: {}

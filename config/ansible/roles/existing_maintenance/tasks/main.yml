@@ -1,0 +1,10 @@
+- name: Run host update script if configured
+  ansible.builtin.shell: "{{ existing_update_script }}"
+  args:
+    executable: /bin/bash
+  when: existing_update_script | length > 0
+
+- name: Install lm-sensors on Debian/Fedora
+  ansible.builtin.package:
+    name: lm_sensors
+    state: present

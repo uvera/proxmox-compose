@@ -1,0 +1,13 @@
+common_packages_debian:
+  - curl
+  - git
+  - htop
+  - jq
+  - python3
+
+common_packages_fedora:
+  - curl
+  - git
+  - htop
+  - jq
+  - python3
