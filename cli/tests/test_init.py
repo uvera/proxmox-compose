@@ -14,7 +14,7 @@ def test_init_scaffolds_git_repo_and_core_files(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert (target / ".git").exists()
-    assert (target / "infra/terraform/providers.tf").exists()
+    assert (target / "infra/terraform/environments/homelab/providers.tf").exists()
     assert (target / "config/ansible/playbooks/post-provision.yml").exists()
     assert (target / ".cursor/rules/proxmox-compose.mdc").exists()
     assert (target / "AGENTS.md").exists()

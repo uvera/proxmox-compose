@@ -6,5 +6,5 @@
 
 - name: Install lm-sensors on Debian/Fedora
   ansible.builtin.package:
-    name: lm_sensors
+    name: lm-sensors
     state: present

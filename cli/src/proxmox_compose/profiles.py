@@ -1,5 +1,7 @@
 from pathlib import Path
 import os
+import shlex
+import subprocess
 from typing import Any
 
 import yaml
@@ -19,11 +21,41 @@ def get_profile(name: str) -> dict[str, Any]:
     return data.get("profiles", {}).get(name, {})
 
 
+def get_profile_secret_env_commands(name: str) -> dict[str, Any]:
+    profile = get_profile(name)
+    commands = profile.get("secret_env_commands", {})
+    if isinstance(commands, dict):
+        return commands
+    return {}
+
+
+def _resolve_secret_command(command_spec: Any) -> str:
+    if isinstance(command_spec, list):
+        command = [str(part) for part in command_spec]
+    else:
+        command = shlex.split(str(command_spec))
+    result = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0:
+        joined = " ".join(command)
+        stderr = result.stderr.strip()
+        raise RuntimeError(f"Failed to resolve secret command ({joined}): {stderr}")
+    return result.stdout.strip()
+
+
 def load_profile_env(name: str) -> None:
     profile = get_profile(name)
     env_vars = profile.get("env", {})
     for key, value in env_vars.items():
         os.environ[key] = str(value)
+
+    secret_env_commands = get_profile_secret_env_commands(name)
+    for key, command_spec in secret_env_commands.items():
+        os.environ[str(key)] = _resolve_secret_command(command_spec)
 
 
 def get_profile_ssh_key(name: str) -> Path | None:

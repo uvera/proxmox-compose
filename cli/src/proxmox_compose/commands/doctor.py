@@ -3,7 +3,12 @@ from pathlib import Path
 
 import typer
 
-from proxmox_compose.profiles import DEFAULT_PROFILE_FILE, get_profile, get_profile_ssh_key
+from proxmox_compose.profiles import (
+    DEFAULT_PROFILE_FILE,
+    get_profile,
+    get_profile_secret_env_commands,
+    get_profile_ssh_key,
+)
 
 REQUIRED_BINARIES = ["terraform", "ansible-playbook", "git"]
 REQUIRED_PROFILE_ENV_VARS = [
@@ -27,7 +32,12 @@ def _binary_checks() -> tuple[list[str], list[str]]:
 def _profile_checks(profile: str) -> tuple[list[str], list[str], bool]:
     profile_data = get_profile(profile)
     env_vars = profile_data.get("env", {})
-    missing = [key for key in REQUIRED_PROFILE_ENV_VARS if not env_vars.get(key)]
+    secret_env_commands = get_profile_secret_env_commands(profile)
+    missing = [
+        key
+        for key in REQUIRED_PROFILE_ENV_VARS
+        if not env_vars.get(key) and not secret_env_commands.get(key)
+    ]
     ok = [key for key in REQUIRED_PROFILE_ENV_VARS if key not in missing]
     return ok, missing, bool(profile_data)
 

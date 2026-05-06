@@ -1,10 +1,18 @@
+- name: Check whether Docker is already installed
+  ansible.builtin.command: docker --version
+  register: docker_cli_check
+  changed_when: false
+  failed_when: false
+
 - name: Install Docker on Debian
   ansible.builtin.apt:
     name:
       - docker.io
       - docker-compose-plugin
     state: present
-  when: ansible_os_family == "Debian"
+  when:
+    - ansible_facts["os_family"] == "Debian"
+    - docker_cli_check.rc != 0
 
 - name: Install Docker on Fedora
   ansible.builtin.dnf:
@@ -12,7 +20,9 @@
       - docker
       - docker-compose
     state: present
-  when: ansible_distribution == "Fedora"
+  when:
+    - ansible_facts["distribution"] == "Fedora"
+    - docker_cli_check.rc != 0
 
 - name: Ensure docker service enabled
   ansible.builtin.service:
@@ -24,4 +34,4 @@
   ansible.builtin.include_role:
     name: deploy_git_app
   vars:
-    deploy_git_apps: "{{ vm_compose_apps }}"
+    deploy_git_apps: "{{ hostvars[inventory_hostname]['vm_compose_apps'] | default([]) }}"

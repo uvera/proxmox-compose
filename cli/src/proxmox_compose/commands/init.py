@@ -22,6 +22,7 @@ def _bootstrap_profiles() -> None:
         "profiles": {
             "default": {
                 "ssh_key_path": None,
+                "secret_env_commands": {},
                 "env": {
                     "TF_VAR_proxmox_endpoint": "https://proxmox.local:8006/api2/json",
                     "TF_VAR_proxmox_username": "root@pam",

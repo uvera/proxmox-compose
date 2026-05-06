@@ -24,3 +24,4 @@ src/proxmox_compose/engines/runner.py
 src/proxmox_compose/engines/terraform.py
 tests/test_doctor.py
 tests/test_init.py
+tests/test_profiles.py

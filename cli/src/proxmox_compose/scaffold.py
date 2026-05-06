@@ -51,20 +51,33 @@ proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
 ```
 
-## Profile SSH Key
+## Profile SSH Key and Encrypted Password
 
 You can set an SSH private key in your CLI profile so Ansible uses it for
-`plan`, `apply`, and `provision-existing`:
+`plan`, `apply`, and `provision-existing`, and resolve sensitive values (like
+the Proxmox password) from a command instead of storing plaintext:
 
 ```yaml
 profiles:
   default:
     ssh_key_path: ~/.ssh/id_ed25519
+    secret_env_commands:
+      TF_VAR_proxmox_password: "pass homelab/proxmox_password"
     env:
       TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
       TF_VAR_proxmox_username: root@pam
-      TF_VAR_proxmox_password: change-me
       TF_VAR_proxmox_insecure: "true"
+```
+
+`secret_env_commands` supports either a shell-like string command or an argv
+list, for example:
+
+```yaml
+secret_env_commands:
+  TF_VAR_proxmox_password:
+    - op
+    - read
+    - op://Homelab/Proxmox/password
 ```
 
 ## Recommended Workflow
@@ -137,7 +150,7 @@ test-cli:
 lint-cli:
 \tPYTHONPATH=cli/src $(PYTHON) -m compileall cli/src
 """,
-    "infra/terraform/providers.tf": """terraform {
+    "infra/terraform/environments/homelab/providers.tf": """terraform {
   required_version = ">= 1.6.0"
   required_providers {
     proxmox = {
@@ -557,7 +570,8 @@ debian_lxcs = [
 inventory = ./inventory/hosts.yml
 roles_path = ./roles
 host_key_checking = False
-stdout_callback = yaml
+stdout_callback = ansible.builtin.default
+result_format = yaml
 """,
     "config/ansible/inventory/static.yml": """all:
   children:

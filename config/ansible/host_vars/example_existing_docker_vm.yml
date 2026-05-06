@@ -13,4 +13,10 @@ vm_compose_apps:
         frigate:
           image: ghcr.io/blakeblackshear/frigate:0.17.1
           restart: unless-stopped
+    env_file_name: ".env"
     env_content: "{{ frigate_env_content }}"
+    managed_files:
+      - dest: "/opt/frigate/.env.secrets"
+        mode: "0600"
+        secret: true
+        content: "{{ frigate_env_secrets_content }}"

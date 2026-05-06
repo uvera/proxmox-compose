@@ -1,1 +1,1 @@
-deploy_git_apps: []
+deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
