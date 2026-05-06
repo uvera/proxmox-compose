@@ -3,7 +3,7 @@ from pathlib import Path
 
 import typer
 
-from proxmox_compose.profiles import DEFAULT_PROFILE_FILE, get_profile
+from proxmox_compose.profiles import DEFAULT_PROFILE_FILE, get_profile, get_profile_ssh_key
 
 REQUIRED_BINARIES = ["terraform", "ansible-playbook", "git"]
 REQUIRED_PROFILE_ENV_VARS = [
@@ -72,6 +72,14 @@ def doctor_command(
         typer.echo(f"  [ok] {key}")
     for key in missing_vars:
         typer.echo(f"  [missing] {key}")
+
+    ssh_key_path = get_profile_ssh_key(profile)
+    if ssh_key_path:
+        if ssh_key_path.exists():
+            typer.echo(f"  [ok] ssh_key_path={ssh_key_path}")
+        else:
+            typer.echo(f"  [missing] ssh_key_path={ssh_key_path} (file not found)")
+            missing_vars.append("ssh_key_path")
 
     required_paths = [
         workspace / "infra/terraform/environments/homelab/main.tf",

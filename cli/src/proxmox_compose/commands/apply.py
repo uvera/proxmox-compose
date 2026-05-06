@@ -5,7 +5,7 @@ import typer
 from proxmox_compose.commands.inventory import sync_inventory
 from proxmox_compose.engines.ansible import run_ansible_playbook
 from proxmox_compose.engines.terraform import run_terraform_apply
-from proxmox_compose.profiles import load_profile_env
+from proxmox_compose.profiles import get_profile_ssh_key, load_profile_env
 
 
 def apply_command(
@@ -24,7 +24,12 @@ def apply_command(
 ) -> None:
     """Run Terraform apply, inventory sync, and Ansible convergence."""
     load_profile_env(profile)
+    ssh_key_path = get_profile_ssh_key(profile)
     tf_env = workspace / "infra/terraform/environments/homelab"
     run_terraform_apply(tf_env)
     sync_inventory(workspace=workspace)
-    run_ansible_playbook(workspace / "config/ansible/playbooks/post-provision.yml", workspace)
+    run_ansible_playbook(
+        workspace / "config/ansible/playbooks/post-provision.yml",
+        workspace,
+        ssh_key_path=ssh_key_path,
+    )

@@ -34,6 +34,22 @@ proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
 ```
 
+## Profile SSH Key
+
+You can set an SSH private key in your CLI profile so Ansible uses it for
+`plan`, `apply`, and `provision-existing`:
+
+```yaml
+profiles:
+  default:
+    ssh_key_path: ~/.ssh/id_ed25519
+    env:
+      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
+      TF_VAR_proxmox_username: root@pam
+      TF_VAR_proxmox_password: change-me
+      TF_VAR_proxmox_insecure: "true"
+```
+
 ## Recommended Workflow
 
 1. Update desired infrastructure in `infra/terraform/environments/homelab`.

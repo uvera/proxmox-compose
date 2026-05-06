@@ -3,7 +3,7 @@ from pathlib import Path
 import typer
 
 from proxmox_compose.engines.ansible import run_ansible_playbook
-from proxmox_compose.profiles import load_profile_env
+from proxmox_compose.profiles import get_profile_ssh_key, load_profile_env
 
 
 def provision_existing_command(
@@ -22,7 +22,9 @@ def provision_existing_command(
 ) -> None:
     """Converge already-existing hosts without creating new infra."""
     load_profile_env(profile)
+    ssh_key_path = get_profile_ssh_key(profile)
     run_ansible_playbook(
         workspace / "config/ansible/playbooks/provision-existing.yml",
         workspace,
+        ssh_key_path=ssh_key_path,
     )

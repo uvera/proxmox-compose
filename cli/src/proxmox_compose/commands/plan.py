@@ -4,7 +4,7 @@ import typer
 
 from proxmox_compose.engines.ansible import run_ansible_check
 from proxmox_compose.engines.terraform import run_terraform_plan
-from proxmox_compose.profiles import load_profile_env
+from proxmox_compose.profiles import get_profile_ssh_key, load_profile_env
 
 
 def plan_command(
@@ -23,5 +23,10 @@ def plan_command(
 ) -> None:
     """Run Terraform plan and Ansible check mode."""
     load_profile_env(profile)
+    ssh_key_path = get_profile_ssh_key(profile)
     run_terraform_plan(workspace / "infra/terraform/environments/homelab")
-    run_ansible_check(workspace / "config/ansible/playbooks/post-provision.yml", workspace)
+    run_ansible_check(
+        workspace / "config/ansible/playbooks/post-provision.yml",
+        workspace,
+        ssh_key_path=ssh_key_path,
+    )

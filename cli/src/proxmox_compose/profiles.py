@@ -24,3 +24,11 @@ def load_profile_env(name: str) -> None:
     env_vars = profile.get("env", {})
     for key, value in env_vars.items():
         os.environ[key] = str(value)
+
+
+def get_profile_ssh_key(name: str) -> Path | None:
+    profile = get_profile(name)
+    ssh_key_path = profile.get("ssh_key_path")
+    if not ssh_key_path:
+        return None
+    return Path(str(ssh_key_path)).expanduser()
