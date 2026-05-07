@@ -49,6 +49,7 @@ proxmox-compose plan --workspace .
 proxmox-compose apply --workspace .
 proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
+proxmox-compose vault edit --workspace .
 ```
 
 ## Profile SSH Key and Encrypted Proxmox Credentials

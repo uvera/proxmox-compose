@@ -18,6 +18,7 @@ src/proxmox_compose/commands/init.py
 src/proxmox_compose/commands/inventory.py
 src/proxmox_compose/commands/plan.py
 src/proxmox_compose/commands/provision_existing.py
+src/proxmox_compose/commands/vault.py
 src/proxmox_compose/engines/__init__.py
 src/proxmox_compose/engines/ansible.py
 src/proxmox_compose/engines/runner.py
@@ -25,3 +26,4 @@ src/proxmox_compose/engines/terraform.py
 tests/test_doctor.py
 tests/test_init.py
 tests/test_profiles.py
+tests/test_vault.py
