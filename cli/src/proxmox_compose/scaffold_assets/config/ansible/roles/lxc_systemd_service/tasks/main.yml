@@ -355,7 +355,8 @@
 
 - name: Install Python applications in editable mode
   ansible.builtin.pip:
-    name: "{{ item.app_dir }}"
+    name: >-
+      {{ item.app_dir }}{% if item.extras is defined and (item.extras | length) > 0 %}[{{ item.extras | join(',') }}]{% endif %}
     editable: true
     state: present
     virtualenv: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
@@ -386,6 +387,17 @@
     - item.migrate | default(false)
     - item.environment_file is defined
   changed_when: false
+
+- name: Ensure runtime data directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default(item.owner | default('root')) }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ lxc_runtime_dirs }}"
+  loop_control:
+    label: "{{ item.path }}"
 
 - name: Install systemd unit files
   ansible.builtin.template:

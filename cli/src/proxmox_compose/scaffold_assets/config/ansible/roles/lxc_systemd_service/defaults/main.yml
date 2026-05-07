@@ -13,6 +13,11 @@ lxc_go_local_cgo_enabled: "0"
 
 lxc_systemd_services: []
 
+# List of { path, owner, group, mode } — directories created (with ownership) before
+# systemd units start. Use for writable state/cache/output paths the service user needs
+# (for example env vars like DAEMON_STATE_DIR) when the package install does not create them.
+lxc_runtime_dirs: []
+
 # List of { name: <role>, password: <secret> } — applied with local peer auth as the
 # postgres OS user. Use the same values as in DATABASE_URL (or related env) for the app.
 lxc_postgresql_role_updates: []
