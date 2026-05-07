@@ -4,7 +4,6 @@ src/proxmox_compose/__init__.py
 src/proxmox_compose/cli.py
 src/proxmox_compose/main.py
 src/proxmox_compose/profiles.py
-src/proxmox_compose/scaffold.py
 src/proxmox_compose.egg-info/PKG-INFO
 src/proxmox_compose.egg-info/SOURCES.txt
 src/proxmox_compose.egg-info/dependency_links.txt
@@ -23,6 +22,13 @@ src/proxmox_compose/engines/__init__.py
 src/proxmox_compose/engines/ansible.py
 src/proxmox_compose/engines/runner.py
 src/proxmox_compose/engines/terraform.py
+src/proxmox_compose/scaffold/__init__.py
+src/proxmox_compose/scaffold/ansible.py
+src/proxmox_compose/scaffold/ci.py
+src/proxmox_compose/scaffold/core.py
+src/proxmox_compose/scaffold/docs.py
+src/proxmox_compose/scaffold/guidance.py
+src/proxmox_compose/scaffold/terraform.py
 tests/test_doctor.py
 tests/test_init.py
 tests/test_profiles.py
