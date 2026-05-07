@@ -11,6 +11,16 @@ resource "proxmox_virtual_environment_container" "this" {
   vm_id        = var.vm_id
   unprivileged = true
   started      = var.started
+  features {
+    nesting = true
+  }
+
+  # Existing LXCs may have feature flags that non-root API tokens are not
+  # allowed to modify. Keep nesting for create while avoiding forbidden
+  # feature reconciliation on already-managed containers.
+  lifecycle {
+    ignore_changes = [features]
+  }
 
   initialization {
     hostname = var.name
