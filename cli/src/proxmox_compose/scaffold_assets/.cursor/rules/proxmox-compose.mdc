@@ -1,0 +1,20 @@
+---
+description: Proxmox Compose infrastructure and agent rules
+alwaysApply: true
+---
+
+# Proxmox Compose Rule
+
+- Treat Terraform as source of truth for VM/LXC lifecycle.
+- Treat Ansible as source of truth for software and day-2 config.
+- Support Debian and Fedora VMs; support Debian-only LXCs.
+- Prefer VM deployment for Docker Compose workloads (for example Frigate).
+- For LXC app workloads, use systemd units and explicit package/runtime dependencies.
+- Never perform destructive Proxmox operations unless user explicitly requests it.
+- Keep inventory synced before running Ansible against provisioned resources.
+- Use `provision-existing` for brownfield hosts instead of forcing Terraform ownership.
+- Prefer host_vars/group_vars patterns over hardcoded host-specific values in tracked files.
+- Keep examples public-safe (no private IPs, usernames, tokens, or personal paths).
+- For compose apps, support both git-based and inline `compose_file_content` approaches.
+- Inject secrets via vault-backed variables and avoid plaintext credentials in repository.
+- Validate with doctor/tests/syntax checks before proposing completion.

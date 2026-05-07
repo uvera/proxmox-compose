@@ -1,14 +1,17 @@
 # Secrets and CI
 
 ## Secrets
-- Keep `terraform.tfvars` local (ignored) for secrets and machine-specific overrides.
-- Keep shared non-secret Terraform values in tracked `*.auto.tfvars` files (for example `homelab.shared.auto.tfvars`).
+- Scaffold templates ship from `cli/src/proxmox_compose/scaffold_assets/`. In a **generated** workspace (after `proxmox-compose init`), keep `terraform.tfvars` local (ignored) for secrets and machine-specific overrides.
+- Keep shared non-secret Terraform values in tracked `*.auto.tfvars` files (for example `homelab.shared.auto.tfvars`) in that workspace.
+- For Debian LXC SSH key defaults, set `default_lxc_ssh_public_key_path` in local `terraform.tfvars`; keep `file(...)`/`pathexpand(...)` calls in `.tf` files, not in tfvars values.
 - Prefer profile `env`/`secret_env_commands` (`TF_VAR_*`) for provider auth values; avoid redefining them in tfvars files because tfvars takes precedence over environment variables.
 - Use `~/.config/proxmox-compose/profiles.yml` for local profile env vars.
-- Use Ansible Vault for repository secrets (`inventory/group_vars/all/vault.yml`).
+- Use Ansible Vault for repository secrets in workspaces (`inventory/group_vars/all/vault.yml`).
 
-## CI Validation
-Run these checks in CI:
-1. `terraform fmt -check`
-2. `terraform validate`
-3. `ansible-playbook --syntax-check`
+## CI Validation (this CLI repository)
+Run these checks in CI (see `.github/workflows/validate.yml`):
+1. `terraform fmt -check -recursive cli/src/proxmox_compose/scaffold_assets/infra/terraform`
+2. `terraform validate` from `cli/src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab`
+3. `ansible-playbook --syntax-check` from `cli/src/proxmox_compose/scaffold_assets/config/ansible`
+
+In a **user workspace** created from the scaffold, use the same commands with `infra/terraform` and `config/ansible` at the repository root.

@@ -3,34 +3,34 @@ proxmox_ssh_username = "root"
 proxmox_node_addresses = {
   pve1 = "192.168.50.15"
 }
-allowed_nodes = ["pve1", "pve2"]
-default_vm_datastore_id = "local-lvm"
+allowed_nodes            = ["pve1", "pve2"]
+default_vm_datastore_id  = "local-lvm"
 default_lxc_datastore_id = "local-lvm"
 
 vms = [
   {
-    name = "frigate-vm"
-    node_name = "pve1"
-    vm_id = 201
-    template_id = 9001
-    os = "debian"
+    name         = "frigate-vm"
+    node_name    = "pve1"
+    vm_id        = 201
+    template_id  = 9001
+    os           = "debian"
     ansible_host = "frigate-vm.local"
     ansible_user = "debian"
-    cpu_cores = 4
-    memory_mb = 8192
-    disk_gb = 64
-    bridge = "vmbr0"
+    cpu_cores    = 4
+    memory_mb    = 8192
+    disk_gb      = 64
+    bridge       = "vmbr0"
     datastore_id = "local-lvm"
-    started = true
-    tags = ["homelab", "vm", "frigate"]
+    started      = true
+    tags         = ["homelab", "vm", "frigate"]
   },
 ]
 
 debian_lxcs = [
   {
-    name = "postgres-lxc"
-    node_name = "pve1"
-    vm_id = 301
+    name             = "postgres-lxc"
+    node_name        = "pve1"
+    vm_id            = 301
     template_file_id = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
     # Option A (DHCP + DNS): set ansible_host to a resolvable name/FQDN
     ansible_host = "postgres-lxc.local"
@@ -39,13 +39,14 @@ debian_lxcs = [
     # ipv4_cidr = "192.168.50.31/24"
     # ipv4_gateway = "192.168.50.1"
     # Optional SSH public key injection for root/default user:
-    # ssh_public_keys = [trimspace(file(pathexpand("~/.ssh/id_ed25519.pub")))]
+    # ssh_public_keys = ["ssh-ed25519 AAAA... user@host"]
+    # Or set default_lxc_ssh_public_key_path in local terraform.tfvars.
     ansible_user = "root"
-    cores = 2
-    memory_mb = 2048
-    disk_gb = 24
-    bridge = "vmbr0"
+    cores        = 2
+    memory_mb    = 2048
+    disk_gb      = 24
+    bridge       = "vmbr0"
     datastore_id = "local-lvm"
-    started = true
+    started      = true
   },
 ]

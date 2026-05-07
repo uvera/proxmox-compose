@@ -1,27 +1,29 @@
 ---
-description: Keep Ansible scaffolding synced with live role changes
+description: Keep scaffold templates coherent when editing embedded IaC/Ansible
 alwaysApply: true
 ---
 
-# Scaffold Synchronization Rule
+# Scaffold templates
 
-When editing tracked Ansible role/playbook templates that are also embedded in
-`cli/src/proxmox_compose/scaffold/ansible.py`, always update both:
+This repository ships Terraform and Ansible **templates** under
+`cli/src/proxmox_compose/scaffold_assets/`. They are copied into user
+repositories by `proxmox-compose init` and `proxmox-compose scaffold sync`.
 
-- The live file under `config/ansible/**`
-- The matching string template in `cli/src/proxmox_compose/scaffold/ansible.py`
+When changing Terraform modules, homelab env files, Ansible roles, playbooks, or
+docs that belong in a generated workspace, edit the files under
+`cli/src/proxmox_compose/scaffold_assets/**` (preserve the same relative paths
+as in a scaffolded repo: `infra/terraform/...`, `config/ansible/...`, etc.).
 
 ## Required behavior
 
-- Treat scaffold templates as first-class source files, not optional follow-up.
-- In the same task/PR, keep generated scaffold content behaviorally equivalent to
-  the live file changes.
-- Preserve backward compatibility unless the user explicitly requests a breaking
-  scaffold change.
-- Validate after edits (at minimum Ansible syntax check for impacted playbooks).
+- Treat scaffold templates as first-class source files.
+- Preserve backward compatibility unless a breaking scaffold change is explicit.
+- After Ansible playbook or role edits affecting generated trees, run an
+  Ansible syntax check from `cli/src/proxmox_compose/scaffold_assets/config/ansible`.
 
-## Common sync targets
+## Common paths
 
-- `config/ansible/roles/deploy_git_app/**`
-- `config/ansible/roles/lxc_systemd_service/**`
-- `config/ansible/playbooks/**` when represented in scaffold templates
+- `cli/src/proxmox_compose/scaffold_assets/infra/terraform/**`
+- `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app/**`
+- `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/**`
+- `cli/src/proxmox_compose/scaffold_assets/config/ansible/playbooks/**`

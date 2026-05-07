@@ -1,5 +1,4 @@
-CI_SCAFFOLD_FILES: dict[str, str] = {
-    ".github/workflows/validate.yml": """name: validate
+name: validate
 
 on:
   pull_request:
@@ -20,17 +19,14 @@ jobs:
       - name: Run CLI tests
         run: PYTHONPATH=cli/src python -m pytest cli/tests -q
       - name: Terraform fmt
-        run: terraform fmt -check -recursive infra/terraform
+        run: terraform fmt -check -recursive cli/src/proxmox_compose/scaffold_assets/infra/terraform
       - name: Terraform init and validate
         run: |
-          cd infra/terraform/environments/homelab
+          cd cli/src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab
           terraform init -backend=false
           terraform validate
       - name: Ansible syntax check
         run: |
           pipx install ansible
-          cd config/ansible
+          cd cli/src/proxmox_compose/scaffold_assets/config/ansible
           ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check
-""",
-}
-

@@ -1,16 +1,3 @@
-from .ansible import ANSIBLE_SCAFFOLD_FILES
-from .ci import CI_SCAFFOLD_FILES
-from .core import CORE_SCAFFOLD_FILES
-from .docs import DOCS_SCAFFOLD_FILES
-from .guidance import GUIDANCE_SCAFFOLD_FILES
-from .terraform import TERRAFORM_SCAFFOLD_FILES
+from .loader import load_scaffold_files
 
-SCAFFOLD_FILES: dict[str, str] = {
-    **CORE_SCAFFOLD_FILES,
-    **TERRAFORM_SCAFFOLD_FILES,
-    **ANSIBLE_SCAFFOLD_FILES,
-    **GUIDANCE_SCAFFOLD_FILES,
-    **DOCS_SCAFFOLD_FILES,
-    **CI_SCAFFOLD_FILES,
-}
-
+SCAFFOLD_FILES: dict[str, str] = load_scaffold_files()

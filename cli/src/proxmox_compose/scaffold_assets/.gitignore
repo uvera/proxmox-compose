@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+cli/build/
+
+.terraform/
+*.tfstate
+*.tfstate.*
+terraform.tfvars
+
+config/ansible/inventory/group_vars/all/vault.yml
+.cursor/plans/

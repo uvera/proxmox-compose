@@ -1,6 +1,8 @@
 # Proxmox Compose
 
-Infrastructure-as-code for Proxmox with Terraform + Ansible, orchestrated by `proxmox-compose`.
+This **git repository is the `proxmox-compose` CLI** and its embedded Terraform/Ansible **scaffold** for user projects. It is not a homelab deployment: after `proxmox-compose init`, you work in your own repository that contains `infra/terraform/` and `config/ansible/`.
+
+`proxmox-compose` orchestrates Proxmox infrastructure-as-code for those workspaces.
 
 ## What It Does
 
@@ -64,16 +66,26 @@ secret_env_commands:
     - op://Homelab/Proxmox/token_secret
 ```
 
-## Recommended Workflow
+## Recommended Workflow (in your scaffolded repository)
 
-1. Update desired infrastructure in `infra/terraform/environments/homelab`.
-2. Run `proxmox-compose doctor --workspace .` to verify binaries/profile/files.
-3. Run `proxmox-compose plan --workspace .`.
-4. Run `proxmox-compose apply --workspace .`.
-5. For pre-existing hosts, define inventory + vars and run:
+1. Initialize a git repository and run `proxmox-compose init --path .` (see `proxmox-compose init --help`).
+2. Update desired infrastructure in `infra/terraform/environments/homelab`.
+3. Run `proxmox-compose doctor --workspace .` to verify binaries/profile/files.
+4. Run `proxmox-compose plan --workspace .`.
+5. Run `proxmox-compose apply --workspace .`.
+6. For pre-existing hosts, define inventory + vars and run:
    `proxmox-compose provision-existing --workspace .`.
 
-## Repository Layout
+## This repository (CLI source)
+
+- `cli/` - Python package (`pipx install ./cli`).
+- `cli/src/proxmox_compose/scaffold_assets/` - templates copied by `init` / `scaffold sync`: Terraform, Ansible, docs, sample workflow files.
+- `docs/` - contributor-facing notes; user-facing guides are also embedded under `scaffold_assets/docs/`.
+- `.cursor/rules/`, `AGENTS.md`, `CLAUDE.md` - AI/agent guidance for working on this repo.
+
+Scaffolded **user** repositories include paths such as `infra/terraform/`, `config/ansible/playbooks/`, roles, inventory, etc.—see the generated layout after `init`.
+
+## Scaffolded repository layout (after `init`)
 
 - `infra/terraform/` - VM/LXC lifecycle and Terraform modules.
 - `config/ansible/playbooks/` - orchestration playbooks.
@@ -113,7 +125,16 @@ To update Frigate image tag as code:
 
 ## Validation
 
-Before pushing changes:
+**Contributors (this CLI repo):**
+
+```bash
+PYTHONPATH=cli/src python -m pytest cli/tests -q
+terraform fmt -check -recursive cli/src/proxmox_compose/scaffold_assets/infra/terraform
+( cd cli/src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab && terraform init -backend=false && terraform validate )
+( cd cli/src/proxmox_compose/scaffold_assets/config/ansible && ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check )
+```
+
+**Your provisioned workspace (after `init`):**
 
 ```bash
 proxmox-compose doctor --workspace .

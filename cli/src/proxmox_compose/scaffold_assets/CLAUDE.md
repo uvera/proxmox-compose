@@ -1,6 +1,6 @@
 # CLAUDE
 
-When assisting in **this** repository, remember that it is primarily the **CLI and scaffold sources**, not a live Proxmox workspace: Terraform/Ansible templates live under `cli/src/proxmox_compose/scaffold_assets/`. Product behavior for users still follows the rules below for **their** generated repos.
+When assisting in this repository:
 
 ## Architecture Boundaries
 - Terraform owns lifecycle state for VMs and LXCs.
@@ -32,7 +32,7 @@ When assisting in **this** repository, remember that it is primarily the **CLI a
 - Keep repository public-safe by default.
 
 ## Execution Discipline
-- Run `doctor` before orchestration commands in a **provisioned workspace** (not required for CLI-only edits in this repository).
+- Run `doctor` before orchestration commands.
 - Keep inventory synchronized when mixing Terraform + static hosts.
-- Validate changes: in this repo, run Python tests and Terraform/Ansible checks against `cli/src/proxmox_compose/scaffold_assets/`; in a user workspace, run checks against `infra/terraform` and `config/ansible`.
+- Validate changes (Terraform fmt/init/validate, Ansible syntax check, Python tests).
 - If a task is environment-specific, implement as host_vars examples, not committed personal defaults.

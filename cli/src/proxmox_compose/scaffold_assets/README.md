@@ -1,18 +1,4 @@
-CORE_SCAFFOLD_FILES: dict[str, str] = {
-    ".gitignore": """.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-
-.terraform/
-*.tfstate
-*.tfstate.*
-terraform.tfvars
-
-config/ansible/inventory/group_vars/all/vault.yml
-.cursor/plans/
-""",
-    "README.md": """# Proxmox Compose
+# Proxmox Compose
 
 Infrastructure-as-code for Proxmox with Terraform + Ansible, orchestrated by `proxmox-compose`.
 
@@ -46,6 +32,36 @@ proxmox-compose plan --workspace .
 proxmox-compose apply --workspace .
 proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
+proxmox-compose vault edit --workspace .
+```
+
+## Profile SSH Key and Encrypted Proxmox Credentials
+
+You can set an SSH private key in your CLI profile so Ansible uses it for
+`plan`, `apply`, and `provision-existing`, and resolve sensitive values from a
+command instead of storing plaintext.
+
+```yaml
+profiles:
+  default:
+    ssh_key_path: ~/.ssh/id_ed25519
+    secret_env_commands:
+      TF_VAR_proxmox_token_secret: "pass homelab/proxmox_token_secret"
+    env:
+      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
+      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+      TF_VAR_proxmox_insecure: "true"
+```
+
+`secret_env_commands` supports either a shell-like string command or an argv
+list, for example:
+
+```yaml
+secret_env_commands:
+  TF_VAR_proxmox_token_secret:
+    - op
+    - read
+    - op://Homelab/Proxmox/token_secret
 ```
 
 ## Recommended Workflow
@@ -81,6 +97,8 @@ For existing Docker VMs:
    - inline compose (`compose_file_content`)
    - optional `.env` injection (`env_content`) from vault-backed variables
 4. Run `provision-existing`.
+   - `proxmox-compose` relies on inventory-native var discovery in
+     `config/ansible/inventory/host_vars/` and `config/ansible/inventory/group_vars/`.
 
 To update Frigate image tag as code:
 - edit image in host vars compose definition
@@ -104,19 +122,3 @@ cd infra/terraform/environments/homelab && terraform init -backend=false && terr
 cd ../../../..
 cd config/ansible && ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check
 ```
-""",
-    "Makefile": """PYTHON ?= python
-
-.PHONY: install-cli test-cli lint-cli
-
-install-cli:
-\tpipx install --force ./cli
-
-test-cli:
-\tPYTHONPATH=cli/src $(PYTHON) -m pytest cli/tests -q
-
-lint-cli:
-\tPYTHONPATH=cli/src $(PYTHON) -m compileall cli/src
-""",
-}
-

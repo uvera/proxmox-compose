@@ -1,8 +1,13 @@
 # AGENTS
 
-This repository uses `proxmox-compose` as the primary interface.
+This git repository is the **`proxmox-compose` CLI** and embedded scaffold templates. There is no `infra/` or `config/ansible/` at this repository root; those paths exist in **repositories created with** `proxmox-compose init`.
 
-## Core Workflow
+## Maintaining this CLI repository
+1. Edit Python under `cli/src/proxmox_compose/`.
+2. Edit Terraform/Ansible/docs templates under `cli/src/proxmox_compose/scaffold_assets/` (see `.cursor/rules/scaffold-sync.mdc`).
+3. Run `PYTHONPATH=cli/src pytest cli/tests` and Terraform/Ansible checks against the scaffold tree (see `docs/secrets-and-ci.md` or `.github/workflows/validate.yml`).
+
+## Core workflow (in a provisioned workspace)
 1. Update desired infra in `infra/terraform/environments/homelab`.
 2. Run `proxmox-compose doctor`.
 3. Run `proxmox-compose plan`.
@@ -44,10 +49,10 @@ This repository uses `proxmox-compose` as the primary interface.
 - Keep changes minimal and scoped; preserve user edits outside task scope.
 
 ## Validation Checklist
-- Run `proxmox-compose doctor` before plan/apply.
-- For Python changes: run `pytest` and compile checks.
-- For Ansible changes: run syntax check from `config/ansible`.
-- For Terraform changes: run `terraform fmt`, `terraform init -backend=false`, `terraform validate`.
+- Run `proxmox-compose doctor` before plan/apply (in a provisioned workspace).
+- For Python changes in this repo: `PYTHONPATH=cli/src pytest cli/tests`.
+- For Ansible template changes: syntax check from `cli/src/proxmox_compose/scaffold_assets/config/ansible`.
+- For Terraform template changes: `terraform fmt` / `terraform validate` on `cli/src/proxmox_compose/scaffold_assets/infra/terraform`.
 
 ## Troubleshooting Playbook
 - **Doctor fails**: install missing binary or profile vars.
@@ -56,6 +61,6 @@ This repository uses `proxmox-compose` as the primary interface.
 - **Inventory drift**: run `proxmox-compose inventory sync`.
 
 ## Where To Extend
-- Add new VM/LXC shape: `infra/terraform/modules`.
-- Add host config: `config/ansible/roles`.
-- Add app rollouts: `config/ansible/roles/deploy_git_app`.
+- Add new VM/LXC shape: `cli/src/proxmox_compose/scaffold_assets/infra/terraform/modules` (and generated repos: `infra/terraform/modules`).
+- Add host config: `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles` (generated: `config/ansible/roles`).
+- Add app rollouts: `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app`.

@@ -39,6 +39,12 @@ variable "default_lxc_datastore_id" {
   default = "local-lvm"
 }
 
+variable "default_lxc_ssh_public_key_path" {
+  type        = string
+  default     = null
+  description = "Optional local path to SSH public key injected into Debian LXCs when per-LXC ssh_public_keys is not set."
+}
+
 variable "vms" {
   type = list(object({
     name         = string
