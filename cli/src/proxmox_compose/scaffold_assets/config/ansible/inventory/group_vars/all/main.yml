@@ -7,5 +7,8 @@ lxc_docker_enable: false
 
 lxc_systemd_services: []
 
+# Build Go modules for lxc_git_apps on the Ansible controller (requires `go` there); set false to build on the LXC.
+lxc_go_build_local: true
+
 tailscale_enable: false
 tailscale_serve: []

@@ -60,6 +60,7 @@ src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/tas
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/templates/service.j2
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/defaults/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/files/reconcile_serve.py
+src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/files/__pycache__/reconcile_serve.cpython-314.pyc
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/handlers/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/tasks/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/vm_docker/defaults/main.yml
