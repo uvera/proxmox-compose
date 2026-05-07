@@ -13,8 +13,8 @@ from proxmox_compose.profiles import (
 REQUIRED_BINARIES = ["terraform", "ansible-playbook", "git"]
 REQUIRED_PROFILE_ENV_VARS = [
     "TF_VAR_proxmox_endpoint",
-    "TF_VAR_proxmox_username",
-    "TF_VAR_proxmox_password",
+    "TF_VAR_proxmox_token_id",
+    "TF_VAR_proxmox_token_secret",
 ]
 
 

@@ -51,21 +51,23 @@ proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
 ```
 
-## Profile SSH Key and Encrypted Password
+## Profile SSH Key and Encrypted Proxmox Credentials
 
 You can set an SSH private key in your CLI profile so Ansible uses it for
-`plan`, `apply`, and `provision-existing`, and resolve sensitive values (like
-the Proxmox password) from a command instead of storing plaintext:
+`plan`, `apply`, and `provision-existing`, and resolve sensitive values from a
+command instead of storing plaintext.
+
+Recommended: API token ID + secret:
 
 ```yaml
 profiles:
   default:
     ssh_key_path: ~/.ssh/id_ed25519
     secret_env_commands:
-      TF_VAR_proxmox_password: "pass homelab/proxmox_password"
+      TF_VAR_proxmox_token_secret: "pass homelab/proxmox_token_secret"
     env:
       TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_username: root@pam
+      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
       TF_VAR_proxmox_insecure: "true"
 ```
 
@@ -74,10 +76,10 @@ list, for example:
 
 ```yaml
 secret_env_commands:
-  TF_VAR_proxmox_password:
+  TF_VAR_proxmox_token_secret:
     - op
     - read
-    - op://Homelab/Proxmox/password
+    - op://Homelab/Proxmox/token_secret
 ```
 
 ## Recommended Workflow
@@ -160,11 +162,31 @@ lint-cli:
   }
 }
 
+locals {
+  proxmox_api_token = (
+    var.proxmox_token_id != null && var.proxmox_token_secret != null
+    ? "${var.proxmox_token_id}=${var.proxmox_token_secret}"
+    : null
+  )
+}
+
 provider "proxmox" {
-  endpoint = var.proxmox_endpoint
-  username = var.proxmox_username
-  password = var.proxmox_password
-  insecure = var.proxmox_insecure
+  endpoint  = var.proxmox_endpoint
+  api_token = local.proxmox_api_token
+  insecure  = var.proxmox_insecure
+
+  ssh {
+    agent    = true
+    username = var.proxmox_ssh_username
+
+    dynamic "node" {
+      for_each = var.proxmox_node_addresses
+      content {
+        name    = node.key
+        address = node.value
+      }
+    }
+  }
 }
 """,
     "infra/terraform/modules/vm/variables.tf": """variable "name" { type = string }
@@ -362,14 +384,28 @@ resource "proxmox_virtual_environment_container" "this" {
 output "vm_id" { value = proxmox_virtual_environment_container.this.vm_id }
 """,
     "infra/terraform/environments/homelab/variables.tf": """variable "proxmox_endpoint" { type = string }
-variable "proxmox_username" { type = string }
-variable "proxmox_password" {
+variable "proxmox_token_id" {
+  type        = string
+  sensitive   = true
+  description = "Proxmox API token ID (for example terraform@pve!proxmox-compose)."
+}
+variable "proxmox_token_secret" {
   type      = string
   sensitive = true
 }
 variable "proxmox_insecure" {
   type    = bool
   default = true
+}
+variable "proxmox_ssh_username" {
+  type        = string
+  default     = "root"
+  description = "SSH username for provider node connections."
+}
+variable "proxmox_node_addresses" {
+  type        = map(string)
+  default     = {}
+  description = "Optional mapping of Proxmox node names to SSH-resolvable addresses."
 }
 
 variable "allowed_nodes" {
@@ -523,9 +559,14 @@ output "debian_lxcs" {
 }
 """,
     "infra/terraform/environments/homelab/terraform.tfvars.example": """proxmox_endpoint = "https://proxmox.local:8006/api2/json"
-proxmox_username = "root@pam"
-proxmox_password = "change-me"
+proxmox_token_id     = "terraform@pve!proxmox-compose"
+proxmox_token_secret = "change-me"
 proxmox_insecure = true
+proxmox_ssh_username = "root"
+# Optional node name -> IP/FQDN mapping to avoid DNS issues for node names
+proxmox_node_addresses = {
+  pve1 = "192.168.50.15"
+}
 allowed_nodes    = ["pve1", "pve2"]
 default_vm_datastore_id  = "local-lvm"
 default_lxc_datastore_id = "local-lvm"

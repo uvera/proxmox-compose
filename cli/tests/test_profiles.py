@@ -11,7 +11,7 @@ def test_load_profile_env_with_secret_command_string(monkeypatch, tmp_path: Path
     env:
       TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
     secret_env_commands:
-      TF_VAR_proxmox_password: "python -c 'print(\\\"secret\\\")'"
+      TF_VAR_proxmox_token_secret: "python -c 'print(\\\"secret\\\")'"
 """
     )
     monkeypatch.setattr(profiles_module, "DEFAULT_PROFILE_FILE", profile_file)
@@ -19,7 +19,7 @@ def test_load_profile_env_with_secret_command_string(monkeypatch, tmp_path: Path
     profiles_module.load_profile_env("default")
 
     assert profiles_module.os.environ["TF_VAR_proxmox_endpoint"] == "https://proxmox.local:8006/api2/json"
-    assert profiles_module.os.environ["TF_VAR_proxmox_password"] == "secret"
+    assert profiles_module.os.environ["TF_VAR_proxmox_token_secret"] == "secret"
 
 
 def test_load_profile_env_with_secret_command_list(monkeypatch, tmp_path: Path) -> None:
@@ -28,7 +28,7 @@ def test_load_profile_env_with_secret_command_list(monkeypatch, tmp_path: Path) 
         """profiles:
   default:
     secret_env_commands:
-      TF_VAR_proxmox_password:
+      TF_VAR_proxmox_token_secret:
         - python
         - -c
         - print("secret-list")
@@ -38,4 +38,4 @@ def test_load_profile_env_with_secret_command_list(monkeypatch, tmp_path: Path) 
 
     profiles_module.load_profile_env("default")
 
-    assert profiles_module.os.environ["TF_VAR_proxmox_password"] == "secret-list"
+    assert profiles_module.os.environ["TF_VAR_proxmox_token_secret"] == "secret-list"

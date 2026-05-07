@@ -25,8 +25,8 @@ def _bootstrap_profiles() -> None:
                 "secret_env_commands": {},
                 "env": {
                     "TF_VAR_proxmox_endpoint": "https://proxmox.local:8006/api2/json",
-                    "TF_VAR_proxmox_username": "root@pam",
-                    "TF_VAR_proxmox_password": "change-me",
+                    "TF_VAR_proxmox_token_id": "terraform@pve!proxmox-compose",
+                    "TF_VAR_proxmox_token_secret": "change-me",
                     "TF_VAR_proxmox_insecure": "true",
                 }
             }
