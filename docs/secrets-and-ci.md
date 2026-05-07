@@ -7,6 +7,7 @@
 - Prefer profile `env`/`secret_env_commands` (`TF_VAR_*`) for provider auth values; avoid redefining them in tfvars files because tfvars takes precedence over environment variables.
 - Use `~/.config/proxmox-compose/profiles.yml` for local profile env vars.
 - Use Ansible Vault for repository secrets in workspaces (`inventory/group_vars/all/vault.yml`).
+- Private Git over HTTPS in the scaffold: store a PAT in vault (for example `github_pat`) and reference `vm_compose_apps[].git_token`, or define `deploy_git_app_git_token` only in vault-backed inventory (not role defaults), or export `GITHUB_TOKEN` via `profiles.yml` before `apply` / `provision-existing`. For SSH URLs, use `key_file` on the host.
 
 ## CI Validation (this CLI repository)
 Run these checks in CI (see `.github/workflows/validate.yml`):

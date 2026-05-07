@@ -105,7 +105,8 @@ For existing Docker VMs:
 2. Create `config/ansible/inventory/host_vars/<host>.yml` (see
    `config/ansible/inventory/host_vars/example_existing_docker_vm.yml`).
 3. Choose approach:
-   - git-based app (`repo` + `dest`)
+   - git-based app (`repo` + `dest`; private **HTTPS**: `git_token` / vault, optional vault-backed `deploy_git_app_git_token`, or `GITHUB_TOKEN` via profile — see scaffold `docs/secrets-and-ci.md`)
+   - SSH Git URLs: `git@...` with `key_file` on the target host
    - inline compose (`compose_file_content`)
    - optional `.env` injection (`env_content`) from vault-backed variables
 4. Run `provision-existing`.
@@ -121,7 +122,10 @@ To update Frigate image tag as code:
 - Keep secret values out of tracked files.
 - Put sensitive vars into encrypted vault files (for example
   `config/ansible/inventory/group_vars/all/vault.yml`).
-- Reference those values from host/group vars (for example `.env` content).
+- Reference those values from host/group vars (for example `.env` content,
+  or `git_token: "{{ github_pat }}"` for private HTTPS checkouts).
+- Operator-only Git tokens can live in `~/.config/proxmox-compose/profiles.yml`
+  (`env` / `secret_env_commands` for `GITHUB_TOKEN`) so they are not committed.
 
 ## Validation
 

@@ -20,3 +20,16 @@ vm_compose_apps:
         mode: "0600"
         secret: true
         content: "{{ frigate_env_secrets_content }}"
+
+# Private HTTPS GitHub example (PAT in vault as github_pat — see vault.example.yml):
+# vm_compose_apps:
+#   - dest: "/opt/myapp"
+#     repo: "https://github.com/your-org/private-repo.git"
+#     version: "main"
+#     compose: true
+#     git_token: "{{ github_pat }}"
+#
+# Token precedence: git_token (per app) > deploy_git_app_git_token (optional vault-backed
+# group_vars only, not role defaults) > environment variable named by
+# deploy_git_app_git_token_env_var (default GITHUB_TOKEN).
+# For SSH URLs, use key_file (deploy key on the target host) instead of git_token.

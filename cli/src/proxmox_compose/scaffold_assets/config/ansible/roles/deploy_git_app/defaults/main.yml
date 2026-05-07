@@ -2,3 +2,11 @@ deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
 deploy_git_app_enable_compose: true
 # Shallow clone depth (>=1). Set to 0 for full history (git module ignores depth 0).
 deploy_git_app_git_clone_depth: 1
+
+# HTTPS token auth (optional): set per-app `git_token` in inventory, and/or export the
+# env var named below via ~/.config/proxmox-compose/profiles.yml. Do not put secrets in
+# this file — optional shared fallback is `deploy_git_app_git_token` in vault-backed group_vars only.
+# Environment variable name for token fallback (default matches GitHub CLI/tools).
+deploy_git_app_git_token_env_var: GITHUB_TOKEN
+# HTTPS URL user segment when injecting token (GitHub classic/fine PAT: x-access-token).
+deploy_git_app_git_token_username: x-access-token
