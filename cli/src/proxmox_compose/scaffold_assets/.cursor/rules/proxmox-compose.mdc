@@ -9,7 +9,7 @@ alwaysApply: true
 - Treat Ansible as source of truth for software and day-2 config.
 - Support Debian and Fedora VMs; support Debian-only LXCs.
 - Prefer VM deployment for Docker Compose workloads (for example Frigate).
-- For LXC app workloads, use systemd units and explicit package/runtime dependencies.
+- For LXC app workloads: use systemd units (`lxc_systemd_service`), or Docker Compose on Debian LXCs (`lxc_docker` + nesting; AppArmor workaround on the Proxmox host if runc breaks Docker — see `docs/lxc-docker-compose.md`).
 - Never perform destructive Proxmox operations unless user explicitly requests it.
 - Keep inventory synced before running Ansible against provisioned resources.
 - Use `provision-existing` for brownfield hosts instead of forcing Terraform ownership.

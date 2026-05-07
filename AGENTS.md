@@ -17,14 +17,15 @@ This git repository is the **`proxmox-compose` CLI** and embedded scaffold templ
 ## Platform Rules
 - VM OS support: Debian, Fedora.
 - LXC OS support: Debian only.
-- Docker Compose apps run on VMs by default.
-- Stateful services on LXCs should run under systemd units.
+- Docker Compose apps run on VMs by default; optional Compose on LXCs via `lxc_docker`.
+- Stateful native services on LXCs often use `lxc_systemd_service`; Compose stacks can use `lxc_docker`.
 
 ## Decision Matrix
 - **Create/delete/resize VM or LXC**: use Terraform (`infra/terraform/**`).
 - **Install packages/users/services on existing machine**: use Ansible roles/playbooks.
 - **Deploy/update Docker Compose app on VM**: use `vm_docker` + `deploy_git_app`.
-- **Deploy/update app in Debian LXC**: use `lxc_systemd_service`.
+- **Deploy/update Docker Compose app on Debian LXC**: use `lxc_docker` + `lxc_compose_apps` (see scaffold `docs/lxc-docker-compose.md`).
+- **Deploy/update non-Docker app in Debian LXC**: use `lxc_systemd_service`.
 - **Manage pre-existing infrastructure**: inventory in `existing_hosts` / `existing_docker_vms` + `provision-existing`.
 - **Inject secrets (`.env`, keys, tokens)**: Ansible Vault values consumed by host/group vars.
 

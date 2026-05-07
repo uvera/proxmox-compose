@@ -1,0 +1,5 @@
+# Git / inline Docker Compose apps on Debian LXCs (same shape as vm_compose_apps).
+lxc_compose_apps: []
+
+# When true, install and start Docker even if lxc_compose_apps is empty (manual stacks).
+lxc_docker_enable: false

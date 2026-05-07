@@ -9,7 +9,7 @@ Infrastructure-as-code for Proxmox with Terraform + Ansible, orchestrated by `pr
 - Supports both:
   - greenfield provisioning (`plan` / `apply`)
   - brownfield convergence for existing hosts (`provision-existing`)
-- Manages Docker Compose apps on VMs and systemd services on Debian LXCs.
+- Manages Docker Compose apps on VMs; optional Docker Compose on Debian LXCs; systemd services on Debian LXCs.
 
 ## Install CLI (System-Wide)
 

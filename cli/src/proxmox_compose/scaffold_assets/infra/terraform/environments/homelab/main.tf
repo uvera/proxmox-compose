@@ -26,14 +26,16 @@ module "debian_lxcs" {
   ssh_public_keys = length(try(each.value.ssh_public_keys, [])) > 0 ? each.value.ssh_public_keys : (
     var.default_lxc_ssh_public_key_path != null ? [trimspace(file(pathexpand(var.default_lxc_ssh_public_key_path)))] : []
   )
-  ipv4_cidr    = try(each.value.ipv4_cidr, null)
-  ipv4_gateway = try(each.value.ipv4_gateway, null)
-  cores        = each.value.cores
-  memory_mb    = each.value.memory_mb
-  disk_gb      = each.value.disk_gb
-  bridge       = each.value.bridge
-  datastore_id = try(each.value.datastore_id, var.default_lxc_datastore_id)
-  started      = each.value.started
+  ipv4_cidr       = try(each.value.ipv4_cidr, null)
+  ipv4_gateway    = try(each.value.ipv4_gateway, null)
+  cores           = each.value.cores
+  memory_mb       = each.value.memory_mb
+  disk_gb         = each.value.disk_gb
+  bridge          = each.value.bridge
+  datastore_id    = try(each.value.datastore_id, var.default_lxc_datastore_id)
+  started         = each.value.started
+  features_fuse   = try(each.value.lxc_features_fuse, false)
+  features_keyctl = try(each.value.lxc_features_keyctl, false)
 }
 
 output "vms" {

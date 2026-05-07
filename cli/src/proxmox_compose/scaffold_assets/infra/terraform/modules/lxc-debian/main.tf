@@ -13,6 +13,8 @@ resource "proxmox_virtual_environment_container" "this" {
   started      = var.started
   features {
     nesting = true
+    fuse    = var.features_fuse
+    keyctl  = var.features_keyctl
   }
 
   # Existing LXCs may have feature flags that non-root API tokens are not
@@ -21,6 +23,10 @@ resource "proxmox_virtual_environment_container" "this" {
   lifecycle {
     ignore_changes = [features]
   }
+
+  # AppArmor / runc (CVE-2025-52881): the Terraform provider does not expose
+  # lxc.apparmor.profile. Apply host-side CT config on the Proxmox node if Docker
+  # fails inside the guest — see docs/lxc-docker-compose.md.
 
   initialization {
     hostname = var.name

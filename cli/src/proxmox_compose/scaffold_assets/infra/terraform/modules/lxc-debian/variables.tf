@@ -57,3 +57,15 @@ variable "started" {
   type    = bool
   default = true
 }
+
+variable "features_fuse" {
+  type        = bool
+  default     = false
+  description = "Optional LXC feature: FUSE (some container images need this)."
+}
+
+variable "features_keyctl" {
+  type        = bool
+  default     = false
+  description = "Optional LXC feature: keyctl (rare; some runtimes)."
+}

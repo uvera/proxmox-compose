@@ -1,0 +1,27 @@
+# Example: Docker Compose on a Debian LXC (inventory group debian_lxcs).
+# Rename to match your inventory hostname.
+
+# Optional: install Docker without defining apps yet (manual compose under /opt, etc.)
+# lxc_docker_enable: true
+
+lxc_compose_apps:
+  - dest: "/opt/example-stack"
+    owner: "root"
+    group: "root"
+    compose: true
+    compose_file_name: "compose.yaml"
+    compose_file_content: |
+      services:
+        web:
+          image: nginx:alpine
+          restart: unless-stopped
+          ports:
+            - "8080:80"
+
+# Private git example (same as vm_compose_apps / deploy_git_app):
+# lxc_compose_apps:
+#   - dest: "/opt/myapp"
+#     repo: "https://github.com/your-org/private-repo.git"
+#     version: "main"
+#     compose: true
+#     git_token: "{{ github_pat }}"

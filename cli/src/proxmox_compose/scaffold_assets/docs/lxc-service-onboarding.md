@@ -1,5 +1,7 @@
 # Debian LXC Service Onboarding
 
+For **Docker Compose on an LXC** (instead of systemd apps), see [lxc-docker-compose.md](lxc-docker-compose.md).
+
 Use this flow for Debian LXC systemd workloads:
 1. Add LXC in Terraform vars (`debian_lxcs`).
 2. Define `lxc_packages` and `lxc_git_apps` as needed.

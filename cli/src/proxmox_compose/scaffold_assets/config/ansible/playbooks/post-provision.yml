@@ -10,6 +10,12 @@
   roles:
     - role: vm_docker
 
+- name: Configure Docker Compose workloads on Debian LXCs
+  hosts: debian_lxcs
+  become: true
+  roles:
+    - role: lxc_docker
+
 - name: Configure systemd services on Debian LXCs
   hosts: debian_lxcs
   become: true

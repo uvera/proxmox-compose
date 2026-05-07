@@ -87,21 +87,24 @@ variable "vms" {
 
 variable "debian_lxcs" {
   type = list(object({
-    name             = string
-    node_name        = string
-    vm_id            = number
-    template_file_id = string
-    ansible_host     = optional(string)
-    ansible_user     = optional(string)
-    ssh_public_keys  = optional(list(string), [])
-    ipv4_cidr        = optional(string)
-    ipv4_gateway     = optional(string)
-    cores            = optional(number, 2)
-    memory_mb        = optional(number, 2048)
-    disk_gb          = optional(number, 16)
-    bridge           = optional(string, "vmbr0")
-    datastore_id     = optional(string)
-    started          = optional(bool, true)
+    name              = string
+    node_name         = string
+    vm_id             = number
+    template_file_id  = string
+    ansible_host      = optional(string)
+    ansible_user      = optional(string)
+    ssh_public_keys   = optional(list(string), [])
+    ipv4_cidr         = optional(string)
+    ipv4_gateway      = optional(string)
+    cores             = optional(number, 2)
+    memory_mb         = optional(number, 2048)
+    disk_gb           = optional(number, 16)
+    bridge            = optional(string, "vmbr0")
+    datastore_id      = optional(string)
+    started           = optional(bool, true)
+    lxc_features_fuse = optional(bool, false)
+    # Rare; enable only if a workload requires keyctl inside the CT.
+    lxc_features_keyctl = optional(bool, false)
   }))
   default = []
   validation {

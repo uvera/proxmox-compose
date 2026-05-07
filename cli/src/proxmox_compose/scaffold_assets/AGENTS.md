@@ -19,7 +19,8 @@ This repository uses `proxmox-compose` as the primary interface.
 - **Create/delete/resize VM or LXC**: use Terraform (`infra/terraform/**`).
 - **Install packages/users/services on existing machine**: use Ansible roles/playbooks.
 - **Deploy/update Docker Compose app on VM**: use `vm_docker` + `deploy_git_app`.
-- **Deploy/update app in Debian LXC**: use `lxc_systemd_service`.
+- **Deploy/update Docker Compose app on Debian LXC**: use `lxc_docker` + `lxc_compose_apps` (same keys as `vm_compose_apps`). Ensure nesting (Terraform) and apply Proxmox host AppArmor workaround if Docker fails (`docs/lxc-docker-compose.md`).
+- **Deploy/update non-Docker app in Debian LXC**: use `lxc_systemd_service`.
 - **Manage pre-existing infrastructure**: inventory in `existing_hosts` / `existing_docker_vms` + `provision-existing`.
 - **Inject secrets (`.env`, keys, tokens)**: Ansible Vault values consumed by host/group vars.
 

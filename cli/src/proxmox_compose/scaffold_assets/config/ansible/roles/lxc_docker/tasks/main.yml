@@ -1,0 +1,34 @@
+- name: Apply Docker Compose role only when configured
+  when: (lxc_compose_apps | default([]) | length > 0) or (lxc_docker_enable | default(false) | bool)
+  block:
+    - name: Require Debian LXC for Docker Compose role
+      ansible.builtin.assert:
+        that:
+          - ansible_facts["os_family"] == "Debian"
+        fail_msg: "lxc_docker supports Debian LXCs only."
+
+    - name: Check whether Docker is already installed
+      ansible.builtin.command: docker --version
+      register: lxc_docker_cli_check
+      changed_when: false
+      failed_when: false
+
+    - name: Install Docker engine and Compose plugin on Debian
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-plugin
+        state: present
+      when: lxc_docker_cli_check.rc != 0
+
+    - name: Ensure docker service enabled
+      ansible.builtin.service:
+        name: docker
+        enabled: true
+        state: started
+
+    - name: Deploy compose applications on LXC
+      ansible.builtin.include_role:
+        name: deploy_git_app
+      vars:
+        deploy_git_apps: "{{ lxc_compose_apps | default([]) }}"
