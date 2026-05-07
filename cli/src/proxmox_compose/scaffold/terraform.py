@@ -430,17 +430,13 @@ output "debian_lxcs" {
   }
 }
 """,
-    "infra/terraform/environments/homelab/terraform.tfvars.example": """proxmox_endpoint = "https://proxmox.local:8006/api2/json"
-proxmox_token_id     = "terraform@pve!proxmox-compose"
-proxmox_token_secret = "change-me"
-proxmox_insecure = true
-proxmox_ssh_username = "root"
+    "infra/terraform/environments/homelab/homelab.shared.auto.tfvars": """proxmox_ssh_username = "root"
 # Optional node name -> IP/FQDN mapping to avoid DNS issues for node names
 proxmox_node_addresses = {
   pve1 = "192.168.50.15"
 }
-allowed_nodes    = ["pve1", "pve2"]
-default_vm_datastore_id  = "local-lvm"
+allowed_nodes = ["pve1", "pve2"]
+default_vm_datastore_id = "local-lvm"
 default_lxc_datastore_id = "local-lvm"
 
 vms = [
@@ -485,6 +481,16 @@ debian_lxcs = [
     started          = true
   },
 ]
+""",
+    "infra/terraform/environments/homelab/terraform.tfvars.example": """# Copy to terraform.tfvars (ignored) and keep secrets/local overrides here.
+# Shared non-secret infrastructure settings live in homelab.shared.auto.tfvars.
+# If set in ~/.config/proxmox-compose/profiles.yml via TF_VAR_*, do not duplicate
+# those values here because terraform.tfvars overrides environment variables.
+proxmox_token_secret = "change-me"
+
+# Optional local overrides (uncomment as needed):
+# proxmox_endpoint = "https://proxmox.local:8006/api2/json"
+# proxmox_token_id = "terraform@pve!proxmox-compose"
 """,
 }
 
