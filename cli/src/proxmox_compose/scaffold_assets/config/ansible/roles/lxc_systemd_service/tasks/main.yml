@@ -265,7 +265,9 @@
       - "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
     creates: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}/bin/python"
   loop: "{{ lxc_python_apps }}"
+  become: true
   become_user: "{{ item.user | default('root') }}"
+  become_method: "{{ lxc_python_become_method }}"
 
 - name: Upgrade pip in Python virtual environments
   ansible.builtin.pip:
@@ -274,7 +276,9 @@
     virtualenv: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
     virtualenv_python: "{{ item.python_bin | default('python3') }}"
   loop: "{{ lxc_python_apps }}"
+  become: true
   become_user: "{{ item.user | default('root') }}"
+  become_method: "{{ lxc_python_become_method }}"
 
 - name: Install Python applications in editable mode
   ansible.builtin.pip:
@@ -284,7 +288,9 @@
     virtualenv: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
     virtualenv_python: "{{ item.python_bin | default('python3') }}"
   loop: "{{ lxc_python_apps }}"
+  become: true
   become_user: "{{ item.user | default('root') }}"
+  become_method: "{{ lxc_python_become_method }}"
   notify: Restart LXC services
 
 - name: Run Python app migrations
@@ -298,7 +304,9 @@
     executable: /bin/bash
     chdir: "{{ item.app_dir }}"
   loop: "{{ lxc_python_apps }}"
+  become: true
   become_user: "{{ item.user | default('root') }}"
+  become_method: "{{ lxc_python_become_method }}"
   when:
     - item.migrate | default(false)
     - item.environment_file is defined

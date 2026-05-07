@@ -110,6 +110,7 @@
     accept_hostkey: true
     depth: "{{ item.git_clone_depth | default(deploy_git_app_git_clone_depth | default(1)) }}"
     single_branch: "{{ item.git_single_branch | default(true) }}"
+    force: "{{ item.git_force | default(deploy_git_app_git_force | default(false)) }}"
   environment:
     GIT_TERMINAL_PROMPT: "0"
   vars:

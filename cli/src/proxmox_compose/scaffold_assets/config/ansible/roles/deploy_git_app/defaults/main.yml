@@ -4,6 +4,9 @@ deploy_git_app_ensure_groups: true
 deploy_git_app_ensure_groups_system: false
 # Shallow clone depth (>=1). Set to 0 for full history (git module ignores depth 0).
 deploy_git_app_git_clone_depth: 1
+# Whether to discard local working tree changes before checkout/update.
+# Can be overridden per app with `git_force`.
+deploy_git_app_git_force: false
 
 # HTTPS token auth (optional): set per-app `git_token` in inventory, and/or export the
 # env var named below via ~/.config/proxmox-compose/profiles.yml. Do not put secrets in
