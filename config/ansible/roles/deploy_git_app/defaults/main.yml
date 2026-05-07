@@ -1,1 +1,2 @@
 deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
+deploy_git_app_enable_compose: true

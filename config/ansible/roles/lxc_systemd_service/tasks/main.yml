@@ -9,6 +9,7 @@
     name: deploy_git_app
   vars:
     deploy_git_apps: "{{ lxc_git_apps }}"
+    deploy_git_app_enable_compose: false
 
 - name: Ensure go build revision stamp directory exists
   ansible.builtin.file:

@@ -225,10 +225,13 @@ common_packages_fedora:
   community.docker.docker_compose_v2:
     project_src: "{{ item.dest }}"
     state: present
-  when: item.compose | default(true)
+  when:
+    - deploy_git_app_enable_compose | bool
+    - item.compose | default(true)
   loop: "{{ deploy_git_apps }}"
 """,
     "config/ansible/roles/deploy_git_app/defaults/main.yml": """deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
+deploy_git_app_enable_compose: true
 """,
     "config/ansible/roles/lxc_systemd_service/tasks/main.yml": """- name: Install Debian packages for LXC services
   ansible.builtin.apt:
@@ -241,6 +244,7 @@ common_packages_fedora:
     name: deploy_git_app
   vars:
     deploy_git_apps: "{{ lxc_git_apps }}"
+    deploy_git_app_enable_compose: false
 
 - name: Ensure go build revision stamp directory exists
   ansible.builtin.file:

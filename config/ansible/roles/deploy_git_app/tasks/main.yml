@@ -62,5 +62,7 @@
     project_src: "{{ item.dest }}"
     files: "{{ [item.compose_file_name] if item.compose_file_name is defined else omit }}"
     state: present
-  when: item.compose | default(true)
+  when:
+    - deploy_git_app_enable_compose | bool
+    - item.compose | default(true)
   loop: "{{ deploy_git_apps | default([]) }}"
