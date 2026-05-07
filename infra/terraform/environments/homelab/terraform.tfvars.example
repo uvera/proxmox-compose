@@ -1,7 +1,12 @@
 proxmox_endpoint = "https://proxmox.local:8006/api2/json"
-proxmox_username = "root@pam"
-proxmox_password = "change-me"
+proxmox_token_id     = "terraform@pve!proxmox-compose"
+proxmox_token_secret = "change-me"
 proxmox_insecure = true
+proxmox_ssh_username = "root"
+# Optional node name -> IP/FQDN mapping to avoid DNS issues for node names
+proxmox_node_addresses = {
+  pve1 = "192.168.50.15"
+}
 allowed_nodes    = ["pve1", "pve2"]
 default_vm_datastore_id  = "local-lvm"
 default_lxc_datastore_id = "local-lvm"
@@ -31,7 +36,14 @@ debian_lxcs = [
     node_name        = "pve1"
     vm_id            = 301
     template_file_id = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+    # Option A (DHCP + DNS): set ansible_host to a resolvable name/FQDN
     ansible_host     = "postgres-lxc.local"
+    # Option B (static via Proxmox init): uncomment ipv4_* and either omit ansible_host
+    # or set it to the same static IP.
+    # ipv4_cidr      = "192.168.50.31/24"
+    # ipv4_gateway   = "192.168.50.1"
+    # Optional SSH public key injection for root/default user:
+    # ssh_public_keys = [trimspace(file(pathexpand("~/.ssh/id_ed25519.pub")))]
     ansible_user     = "root"
     cores            = 2
     memory_mb        = 2048

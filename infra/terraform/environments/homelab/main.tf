@@ -23,6 +23,9 @@ module "debian_lxcs" {
   node_name        = each.value.node_name
   vm_id            = each.value.vm_id
   template_file_id = each.value.template_file_id
+  ssh_public_keys  = try(each.value.ssh_public_keys, [])
+  ipv4_cidr        = try(each.value.ipv4_cidr, null)
+  ipv4_gateway     = try(each.value.ipv4_gateway, null)
   cores            = each.value.cores
   memory_mb        = each.value.memory_mb
   disk_gb          = each.value.disk_gb
@@ -48,7 +51,7 @@ output "debian_lxcs" {
     for lxc in var.debian_lxcs : lxc.name => {
       name         = lxc.name
       vm_id        = lxc.vm_id
-      ansible_host = try(lxc.ansible_host, lxc.name)
+      ansible_host = try(lxc.ansible_host, split("/", lxc.ipv4_cidr)[0], lxc.name)
       ansible_user = try(lxc.ansible_user, "root")
     }
   }

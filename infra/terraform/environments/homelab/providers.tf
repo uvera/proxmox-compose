@@ -9,8 +9,20 @@ terraform {
 }
 
 provider "proxmox" {
-  endpoint = var.proxmox_endpoint
-  username = var.proxmox_username
-  password = var.proxmox_password
-  insecure = var.proxmox_insecure
+  endpoint  = var.proxmox_endpoint
+  api_token = "${var.proxmox_token_id}=${var.proxmox_token_secret}"
+  insecure  = var.proxmox_insecure
+
+  ssh {
+    agent    = true
+    username = var.proxmox_ssh_username
+
+    dynamic "node" {
+      for_each = var.proxmox_node_addresses
+      content {
+        name    = node.key
+        address = node.value
+      }
+    }
+  }
 }

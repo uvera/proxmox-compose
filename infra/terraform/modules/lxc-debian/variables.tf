@@ -34,6 +34,21 @@ variable "bridge" {
   }
 }
 variable "template_file_id" { type = string }
+variable "ipv4_cidr" {
+  type        = string
+  default     = null
+  description = "Optional static IPv4 CIDR (for example 192.168.50.42/24). Uses DHCP when null."
+}
+variable "ipv4_gateway" {
+  type        = string
+  default     = null
+  description = "Optional IPv4 gateway for static addressing."
+}
+variable "ssh_public_keys" {
+  type        = list(string)
+  default     = []
+  description = "Optional SSH public keys to inject for the default container user."
+}
 variable "datastore_id" {
   type    = string
   default = "local-lvm"

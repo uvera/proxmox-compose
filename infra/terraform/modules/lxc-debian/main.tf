@@ -16,8 +16,12 @@ resource "proxmox_virtual_environment_container" "this" {
     hostname = var.name
     ip_config {
       ipv4 {
-        address = "dhcp"
+        address = coalesce(var.ipv4_cidr, "dhcp")
+        gateway = var.ipv4_gateway
       }
+    }
+    user_account {
+      keys = var.ssh_public_keys
     }
   }
 

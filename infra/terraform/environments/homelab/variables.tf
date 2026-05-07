@@ -1,12 +1,26 @@
 variable "proxmox_endpoint" { type = string }
-variable "proxmox_username" { type = string }
-variable "proxmox_password" {
+variable "proxmox_token_id" {
+  type        = string
+  sensitive   = true
+  description = "Proxmox API token ID (for example terraform@pve!proxmox-compose)."
+}
+variable "proxmox_token_secret" {
   type      = string
   sensitive = true
 }
 variable "proxmox_insecure" {
   type    = bool
   default = true
+}
+variable "proxmox_ssh_username" {
+  type        = string
+  default     = "root"
+  description = "SSH username for provider node connections."
+}
+variable "proxmox_node_addresses" {
+  type        = map(string)
+  default     = {}
+  description = "Optional mapping of Proxmox node names to SSH-resolvable addresses."
 }
 
 variable "allowed_nodes" {
@@ -73,6 +87,9 @@ variable "debian_lxcs" {
     template_file_id = string
     ansible_host     = optional(string)
     ansible_user     = optional(string)
+    ssh_public_keys  = optional(list(string), [])
+    ipv4_cidr        = optional(string)
+    ipv4_gateway     = optional(string)
     cores            = optional(number, 2)
     memory_mb        = optional(number, 2048)
     disk_gb          = optional(number, 16)
@@ -94,6 +111,14 @@ variable "debian_lxcs" {
       for lxc in var.debian_lxcs : can(regex("debian", lower(lxc.template_file_id)))
     ])
     error_message = "Debian LXC template_file_id must clearly reference a Debian template."
+  }
+  validation {
+    condition = alltrue([
+      for lxc in var.debian_lxcs : (
+        try(lxc.ipv4_gateway, null) == null || try(lxc.ipv4_cidr, null) != null
+      )
+    ])
+    error_message = "When ipv4_gateway is set for an LXC, ipv4_cidr must also be set."
   }
   validation {
     condition = length(var.allowed_nodes) == 0 || alltrue([
