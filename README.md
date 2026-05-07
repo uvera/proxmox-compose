@@ -34,21 +34,21 @@ proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
 ```
 
-## Profile SSH Key and Encrypted Password
+## Profile SSH Key and Encrypted Proxmox Credentials
 
 You can set an SSH private key in your CLI profile so Ansible uses it for
-`plan`, `apply`, and `provision-existing`, and resolve sensitive values (like
-the Proxmox password) from a command instead of storing plaintext:
+`plan`, `apply`, and `provision-existing`, and resolve sensitive values from a
+command instead of storing plaintext.
 
 ```yaml
 profiles:
   default:
     ssh_key_path: ~/.ssh/id_ed25519
     secret_env_commands:
-      TF_VAR_proxmox_password: "pass homelab/proxmox_password"
+      TF_VAR_proxmox_token_secret: "pass homelab/proxmox_token_secret"
     env:
       TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_username: root@pam
+      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
       TF_VAR_proxmox_insecure: "true"
 ```
 
@@ -57,10 +57,10 @@ list, for example:
 
 ```yaml
 secret_env_commands:
-  TF_VAR_proxmox_password:
+  TF_VAR_proxmox_token_secret:
     - op
     - read
-    - op://Homelab/Proxmox/password
+    - op://Homelab/Proxmox/token_secret
 ```
 
 ## Recommended Workflow
