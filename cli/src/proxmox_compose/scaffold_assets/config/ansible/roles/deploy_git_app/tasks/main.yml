@@ -11,8 +11,8 @@
   ansible.builtin.file:
     path: "{{ item.1.dest | dirname }}"
     state: directory
-    owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
-    group: "{{ item.1.group | default(item.0.group | default('root')) }}"
+    owner: root
+    group: root
     mode: "0755"
   loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
 
