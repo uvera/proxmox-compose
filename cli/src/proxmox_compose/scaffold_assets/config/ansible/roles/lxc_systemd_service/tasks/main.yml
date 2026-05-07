@@ -4,6 +4,79 @@
     name: "{{ lxc_packages }}"
     state: present
 
+- name: Ensure util-linux (provides runuser) for PostgreSQL peer-auth steps
+  ansible.builtin.apt:
+    name: util-linux
+    state: present
+  when: >
+    (lxc_postgresql_role_updates | length > 0)
+    or (lxc_postgresql_databases | length > 0)
+
+- name: Ensure PostgreSQL is running for local role password updates
+  ansible.builtin.service:
+    name: postgresql
+    state: started
+  when: >
+    (lxc_postgresql_role_updates | length > 0)
+    or (lxc_postgresql_databases | length > 0)
+
+- name: Apply PostgreSQL role passwords (match app env / DATABASE_URL)
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      tmp="$(mktemp /tmp/ansible-pgpw.XXXXXX)"
+      chmod 600 "$tmp"
+      trap 'rm -f "$tmp"' EXIT
+      cat > "$tmp"
+      chown postgres:postgres "$tmp"
+      /usr/sbin/runuser -u postgres -- env ROLE={{ item.name | quote }} PWFILE="$tmp" /usr/bin/python3 - <<'PY'
+      import os
+      import subprocess
+
+      role = os.environ["ROLE"]
+      with open(os.environ["PWFILE"], encoding="utf-8") as f:
+          pwd = f.read().rstrip("\r\n")
+
+      tag = "pwd"
+      while "$" + tag + "$" in pwd:
+          tag += "x"
+
+      dollar = "$" + tag + "$" + pwd + "$" + tag + "$"
+      ident = '"' + role.replace("\\", "\\\\").replace('"', '\\"') + '"'
+      sql = "ALTER ROLE {} WITH LOGIN PASSWORD {};".format(ident, dollar)
+
+      subprocess.run(
+          [
+              "/usr/bin/psql",
+              "-v",
+              "ON_ERROR_STOP=1",
+              "-d",
+              "postgres",
+              "-c",
+              sql,
+          ],
+          check=True,
+      )
+      PY
+    stdin: "{{ item.password }}"
+    executable: /bin/bash
+  loop: "{{ lxc_postgresql_role_updates }}"
+  when: lxc_postgresql_role_updates | length > 0
+  no_log: true
+
+- name: Ensure PostgreSQL application databases exist
+  ansible.builtin.shell:
+    cmd: |
+      set -euo pipefail
+      if [ "$(/usr/sbin/runuser -u postgres -- /usr/bin/psql -d postgres -Atqc "SELECT 1 FROM pg_database WHERE datname = '{{ item.name }}'")" = "1" ]; then
+        exit 0
+      fi
+      /usr/sbin/runuser -u postgres -- /usr/bin/psql -d postgres -v ON_ERROR_STOP=1 \
+        -c "CREATE DATABASE {{ item.name }} OWNER {{ item.owner | default('postgres') }};"
+    executable: /bin/bash
+  loop: "{{ lxc_postgresql_databases }}"
+  when: lxc_postgresql_databases | length > 0
+
 - name: Deploy app repositories for service workloads
   ansible.builtin.include_role:
     name: deploy_git_app
@@ -299,6 +372,8 @@
     set -a
     source "{{ item.environment_file }}"
     set +a
+    # psycopg3 can return bytes for server_version when client encoding is unset; SQLAlchemy then errors in re.match.
+    export PGCLIENTENCODING=UTF8
     "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}/bin/alembic" upgrade head
   args:
     executable: /bin/bash

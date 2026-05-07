@@ -12,3 +12,10 @@ lxc_go_local_build_cache_dir: "{{ lookup('env', 'HOME') }}/.cache/proxmox-compos
 lxc_go_local_cgo_enabled: "0"
 
 lxc_systemd_services: []
+
+# List of { name: <role>, password: <secret> } — applied with local peer auth as the
+# postgres OS user. Use the same values as in DATABASE_URL (or related env) for the app.
+lxc_postgresql_role_updates: []
+
+# List of { name: <db>, owner: <role> } — created if missing (simple identifiers only).
+lxc_postgresql_databases: []

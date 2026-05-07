@@ -17,3 +17,20 @@
 #   CAM_SIDE_ENTERANCE_PASSWORD=...
 #   CAM_FRONT_YARD_PASSWORD=...
 #   CAM_GATE_PASSWORD=...
+#
+# PostgreSQL-backed LXC apps (password + env): store secrets only in vault.
+# Example variable names (rename to match your host_vars):
+# myapp_postgres_password: plain-text password for Ansible (ALTER ROLE) — must match the DB.
+# myapp_env_content: |
+#   DATABASE_URL=postgresql+psycopg://postgres:ENCODED_PASSWORD@127.0.0.1:5432/yourdb
+#   ...
+#
+# DATABASE_URL userinfo must be RFC 3986–encoded: @ # : / ? & % in the password break parsing unless escaped.
+# Use the same secret as myapp_postgres_password, but percent-encoded for the URL only, e.g.:
+#   python3 -c "from urllib.parse import quote; print(quote('your-secret', safe=''))"
+# Example: password `x@y#z` → userinfo `x%40y%23z` (do not put raw `@`/`#` in the URL).
+#
+# psycopg3 + SQLAlchemy: use UTF-8 client encoding (avoids TypeError in server version detection), e.g.
+#   PGCLIENTENCODING=UTF8
+# or add to DATABASE_URL query: ?client_encoding=utf8
+# You can also set `environment: "PGCLIENTENCODING=UTF8"` on entries in lxc_systemd_services (see role template).
