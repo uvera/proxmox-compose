@@ -1,15 +1,5 @@
 ansible_python_interpreter: /usr/bin/python3
 
-vm_compose_apps:
-  - repo: "https://github.com/example/frigate-stack.git"
-    dest: "/opt/frigate"
-    version: "main"
-    compose: true
-    # Alternative mode (no git): set compose_file_content and env_content.
-    # compose_file_content: |
-    #   services:
-    #     frigate:
-    #       image: ghcr.io/blakeblackshear/frigate:0.17.1
-    # env_content: "{{ frigate_env_content }}"
+vm_compose_apps: []
 
 lxc_systemd_services: []
