@@ -34,13 +34,15 @@ proxmox-compose plan --workspace .
 proxmox-compose apply --workspace .
 proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
+proxmox-compose logs --workspace . [HOST] [--unit … | --compose-dest … | --container …] [-I|--interactive]
+proxmox-compose logs-tui --workspace .
 proxmox-compose vault edit --workspace .
 ```
 
 ## Profile SSH Key and Encrypted Proxmox Credentials
 
 You can set an SSH private key in your CLI profile so Ansible uses it for
-`plan`, `apply`, and `provision-existing`, and resolve sensitive values from a
+`plan`, `apply`, `provision-existing`, and remote `logs`, and resolve sensitive values from a
 command instead of storing plaintext.
 
 ```yaml

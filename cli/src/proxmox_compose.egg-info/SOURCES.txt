@@ -4,6 +4,7 @@ src/proxmox_compose/__init__.py
 src/proxmox_compose/cli.py
 src/proxmox_compose/main.py
 src/proxmox_compose/profiles.py
+src/proxmox_compose/workspace_manifest.py
 src/proxmox_compose.egg-info/PKG-INFO
 src/proxmox_compose.egg-info/SOURCES.txt
 src/proxmox_compose.egg-info/dependency_links.txt
@@ -15,6 +16,8 @@ src/proxmox_compose/commands/apply.py
 src/proxmox_compose/commands/doctor.py
 src/proxmox_compose/commands/init.py
 src/proxmox_compose/commands/inventory.py
+src/proxmox_compose/commands/logs.py
+src/proxmox_compose/commands/logs_tui.py
 src/proxmox_compose/commands/plan.py
 src/proxmox_compose/commands/provision_existing.py
 src/proxmox_compose/commands/scaffold.py
@@ -30,6 +33,7 @@ src/proxmox_compose/scaffold_assets/AGENTS.md
 src/proxmox_compose/scaffold_assets/CLAUDE.md
 src/proxmox_compose/scaffold_assets/Makefile
 src/proxmox_compose/scaffold_assets/README.md
+src/proxmox_compose/scaffold_assets/proxmox-compose.yml.example
 src/proxmox_compose/scaffold_assets/.cursor/rules/proxmox-compose.mdc
 src/proxmox_compose/scaffold_assets/.github/workflows/validate.yml
 src/proxmox_compose/scaffold_assets/config/ansible/ansible.cfg
@@ -66,9 +70,15 @@ src/proxmox_compose/scaffold_assets/infra/terraform/modules/lxc-debian/variables
 src/proxmox_compose/scaffold_assets/infra/terraform/modules/vm/main.tf
 src/proxmox_compose/scaffold_assets/infra/terraform/modules/vm/outputs.tf
 src/proxmox_compose/scaffold_assets/infra/terraform/modules/vm/variables.tf
+src/proxmox_compose/tui/__init__.py
+src/proxmox_compose/tui/logs_explorer.py
+src/proxmox_compose/tui/logs_targets.py
 tests/test_doctor.py
 tests/test_init.py
+tests/test_logs.py
+tests/test_logs_targets.py
 tests/test_profiles.py
 tests/test_scaffold.py
 tests/test_scaffold_assets.py
 tests/test_vault.py
+tests/test_workspace_manifest.py

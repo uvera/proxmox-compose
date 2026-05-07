@@ -1,0 +1,23 @@
+# Optional workspace defaults for proxmox-compose (copy to ``.proxmox-compose.yml``).
+#
+# With a profile SSH key, ``logs`` runs SSH non-interactively; unknown hosts use
+# OpenSSH StrictHostKeyChecking=accept-new (safe add; changed keys still fail). Use ``--strict-host-keys`` otherwise.
+#
+# ``proxmox-compose logs`` can omit HOST when either:
+#   - ``logs.host`` is set here, or
+#   - merged inventory (``hosts.yml``) contains exactly one host.
+#
+# It can omit --unit / --compose-dest / --container when either:
+#   - one of ``unit`` / ``compose_dest`` / ``container`` is set below, or
+#   - group_vars + host_vars for that host define exactly one of:
+#     ``lxc_systemd_services`` or ``vm_compose_apps`` (non-templated).
+#
+# logs:
+#   host: my_lxc
+#   unit: myapp.service
+#   # or:
+#   # compose_dest: /opt/myapp
+#   # compose_file: docker-compose.yaml
+#   # service: web
+#   # or:
+#   # container: my_container_name

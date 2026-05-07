@@ -15,7 +15,7 @@ jobs:
           python-version: "3.12"
       - uses: hashicorp/setup-terraform@v3
       - name: Install CLI test dependencies
-        run: pip install pytest typer PyYAML
+        run: pip install pytest typer PyYAML textual
       - name: Run CLI tests
         run: PYTHONPATH=cli/src python -m pytest cli/tests -q
       - name: Terraform fmt
