@@ -49,38 +49,6 @@ proxmox-compose plan --workspace .
 proxmox-compose apply --workspace .
 proxmox-compose provision-existing --workspace .
 proxmox-compose inventory sync --workspace .
-proxmox-compose vault edit --workspace .
-```
-
-## Profile SSH Key and Encrypted Proxmox Credentials
-
-You can set an SSH private key in your CLI profile so Ansible uses it for
-`plan`, `apply`, and `provision-existing`, and resolve sensitive values from a
-command instead of storing plaintext.
-
-Recommended: API token ID + secret:
-
-```yaml
-profiles:
-  default:
-    ssh_key_path: ~/.ssh/id_ed25519
-    secret_env_commands:
-      TF_VAR_proxmox_token_secret: "pass homelab/proxmox_token_secret"
-    env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
-      TF_VAR_proxmox_insecure: "true"
-```
-
-`secret_env_commands` supports either a shell-like string command or an argv
-list, for example:
-
-```yaml
-secret_env_commands:
-  TF_VAR_proxmox_token_secret:
-    - op
-    - read
-    - op://Homelab/Proxmox/token_secret
 ```
 
 ## Recommended Workflow
@@ -163,17 +131,9 @@ lint-cli:
   }
 }
 
-locals {
-  proxmox_api_token = (
-    var.proxmox_token_id != null && var.proxmox_token_secret != null
-    ? "${var.proxmox_token_id}=${var.proxmox_token_secret}"
-    : null
-  )
-}
-
 provider "proxmox" {
   endpoint  = var.proxmox_endpoint
-  api_token = local.proxmox_api_token
+  api_token = "${var.proxmox_token_id}=${var.proxmox_token_secret}"
   insecure  = var.proxmox_insecure
 
   ssh {
@@ -325,6 +285,21 @@ variable "bridge" {
   }
 }
 variable "template_file_id" { type = string }
+variable "ipv4_cidr" {
+  type        = string
+  default     = null
+  description = "Optional static IPv4 CIDR (for example 192.168.50.42/24). Uses DHCP when null."
+}
+variable "ipv4_gateway" {
+  type        = string
+  default     = null
+  description = "Optional IPv4 gateway for static addressing."
+}
+variable "ssh_public_keys" {
+  type        = list(string)
+  default     = []
+  description = "Optional SSH public keys to inject for the default container user."
+}
 variable "datastore_id" {
   type    = string
   default = "local-lvm"
@@ -352,8 +327,12 @@ resource "proxmox_virtual_environment_container" "this" {
     hostname = var.name
     ip_config {
       ipv4 {
-        address = "dhcp"
+        address = coalesce(var.ipv4_cidr, "dhcp")
+        gateway = var.ipv4_gateway
       }
+    }
+    user_account {
+      keys = var.ssh_public_keys
     }
   }
 
@@ -427,17 +406,17 @@ variable "default_lxc_datastore_id" {
 
 variable "vms" {
   type = list(object({
-    name        = string
-    node_name   = string
-    vm_id       = number
-    template_id = number
-    os          = optional(string, "debian")
+    name         = string
+    node_name    = string
+    vm_id        = number
+    template_id  = number
+    os           = optional(string, "debian")
     ansible_host = optional(string)
     ansible_user = optional(string)
-    cpu_cores   = optional(number, 2)
-    memory_mb   = optional(number, 4096)
-    disk_gb     = optional(number, 32)
-    bridge      = optional(string, "vmbr0")
+    cpu_cores    = optional(number, 2)
+    memory_mb    = optional(number, 4096)
+    disk_gb      = optional(number, 32)
+    bridge       = optional(string, "vmbr0")
     datastore_id = optional(string)
     started      = optional(bool, true)
     tags         = optional(list(string), [])
@@ -473,6 +452,9 @@ variable "debian_lxcs" {
     template_file_id = string
     ansible_host     = optional(string)
     ansible_user     = optional(string)
+    ssh_public_keys  = optional(list(string), [])
+    ipv4_cidr        = optional(string)
+    ipv4_gateway     = optional(string)
     cores            = optional(number, 2)
     memory_mb        = optional(number, 2048)
     disk_gb          = optional(number, 16)
@@ -496,6 +478,14 @@ variable "debian_lxcs" {
     error_message = "Debian LXC template_file_id must clearly reference a Debian template."
   }
   validation {
+    condition = alltrue([
+      for lxc in var.debian_lxcs : (
+        try(lxc.ipv4_gateway, null) == null || try(lxc.ipv4_cidr, null) != null
+      )
+    ])
+    error_message = "When ipv4_gateway is set for an LXC, ipv4_cidr must also be set."
+  }
+  validation {
     condition = length(var.allowed_nodes) == 0 || alltrue([
       for lxc in var.debian_lxcs : contains(var.allowed_nodes, lxc.node_name)
     ])
@@ -507,14 +497,14 @@ variable "debian_lxcs" {
   for_each = { for vm in var.vms : vm.name => vm }
   source   = "../../modules/vm"
 
-  name        = each.value.name
-  node_name   = each.value.node_name
-  vm_id       = each.value.vm_id
-  template_id = each.value.template_id
-  cpu_cores   = each.value.cpu_cores
-  memory_mb   = each.value.memory_mb
-  disk_gb     = each.value.disk_gb
-  bridge      = each.value.bridge
+  name         = each.value.name
+  node_name    = each.value.node_name
+  vm_id        = each.value.vm_id
+  template_id  = each.value.template_id
+  cpu_cores    = each.value.cpu_cores
+  memory_mb    = each.value.memory_mb
+  disk_gb      = each.value.disk_gb
+  bridge       = each.value.bridge
   datastore_id = try(each.value.datastore_id, var.default_vm_datastore_id)
   started      = each.value.started
   tags         = each.value.tags
@@ -528,6 +518,9 @@ module "debian_lxcs" {
   node_name        = each.value.node_name
   vm_id            = each.value.vm_id
   template_file_id = each.value.template_file_id
+  ssh_public_keys  = try(each.value.ssh_public_keys, [])
+  ipv4_cidr        = try(each.value.ipv4_cidr, null)
+  ipv4_gateway     = try(each.value.ipv4_gateway, null)
   cores            = each.value.cores
   memory_mb        = each.value.memory_mb
   disk_gb          = each.value.disk_gb
@@ -553,7 +546,7 @@ output "debian_lxcs" {
     for lxc in var.debian_lxcs : lxc.name => {
       name         = lxc.name
       vm_id        = lxc.vm_id
-      ansible_host = try(lxc.ansible_host, lxc.name)
+      ansible_host = try(lxc.ansible_host, split("/", lxc.ipv4_cidr)[0], lxc.name)
       ansible_user = try(lxc.ansible_user, "root")
     }
   }
@@ -597,7 +590,14 @@ debian_lxcs = [
     node_name        = "pve1"
     vm_id            = 301
     template_file_id = "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+    # Option A (DHCP + DNS): set ansible_host to a resolvable name/FQDN
     ansible_host     = "postgres-lxc.local"
+    # Option B (static via Proxmox init): uncomment ipv4_* and either omit ansible_host
+    # or set it to the same static IP.
+    # ipv4_cidr      = "192.168.50.31/24"
+    # ipv4_gateway   = "192.168.50.1"
+    # Optional SSH public key injection for root/default user:
+    # ssh_public_keys = [trimspace(file(pathexpand("~/.ssh/id_ed25519.pub")))]
     ansible_user     = "root"
     cores            = 2
     memory_mb        = 2048
@@ -610,10 +610,11 @@ debian_lxcs = [
 """,
     "config/ansible/ansible.cfg": """[defaults]
 inventory = ./inventory/hosts.yml
+playbook_dir = .
 roles_path = ./roles
 host_key_checking = False
 stdout_callback = ansible.builtin.default
-result_format = yaml
+callback_result_format = yaml
 """,
     "config/ansible/inventory/static.yml": """all:
   children:
@@ -706,19 +707,19 @@ vm_compose_apps:
   ansible.builtin.apt:
     update_cache: true
     cache_valid_time: 3600
-  when: ansible_os_family == "Debian"
+  when: ansible_facts["os_family"] == "Debian"
 
 - name: Install Debian baseline packages
   ansible.builtin.apt:
     name: "{{ common_packages_debian }}"
     state: present
-  when: ansible_os_family == "Debian"
+  when: ansible_facts["os_family"] == "Debian"
 
 - name: Install Fedora baseline packages
   ansible.builtin.dnf:
     name: "{{ common_packages_fedora }}"
     state: present
-  when: ansible_distribution == "Fedora"
+  when: ansible_facts["distribution"] == "Fedora"
 """,
     "config/ansible/roles/common/defaults/main.yml": """common_packages_debian:
   - curl
@@ -734,13 +735,21 @@ common_packages_fedora:
   - jq
   - python3
 """,
-    "config/ansible/roles/vm_docker/tasks/main.yml": """- name: Install Docker on Debian
+    "config/ansible/roles/vm_docker/tasks/main.yml": """- name: Check whether Docker is already installed
+  ansible.builtin.command: docker --version
+  register: docker_cli_check
+  changed_when: false
+  failed_when: false
+
+- name: Install Docker on Debian
   ansible.builtin.apt:
     name:
       - docker.io
       - docker-compose-plugin
     state: present
-  when: ansible_os_family == "Debian"
+  when:
+    - ansible_facts["os_family"] == "Debian"
+    - docker_cli_check.rc != 0
 
 - name: Install Docker on Fedora
   ansible.builtin.dnf:
@@ -748,7 +757,9 @@ common_packages_fedora:
       - docker
       - docker-compose
     state: present
-  when: ansible_distribution == "Fedora"
+  when:
+    - ansible_facts["distribution"] == "Fedora"
+    - docker_cli_check.rc != 0
 
 - name: Ensure docker service enabled
   ansible.builtin.service:
@@ -760,7 +771,7 @@ common_packages_fedora:
   ansible.builtin.include_role:
     name: deploy_git_app
   vars:
-    deploy_git_apps: "{{ vm_compose_apps }}"
+    deploy_git_apps: "{{ hostvars[inventory_hostname]['vm_compose_apps'] | default([]) }}"
 """,
     "config/ansible/roles/vm_docker/defaults/main.yml": """vm_compose_apps: []
 """,
@@ -773,6 +784,15 @@ common_packages_fedora:
     mode: "0755"
   loop: "{{ deploy_git_apps }}"
 
+- name: Ensure managed file parent directories exist
+  ansible.builtin.file:
+    path: "{{ item.1.dest | dirname }}"
+    state: directory
+    owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
+    group: "{{ item.1.group | default(item.0.group | default('root')) }}"
+    mode: "0755"
+  loop: "{{ deploy_git_apps | subelements('managed_files', skip_missing=true) }}"
+
 - name: Checkout repositories
   ansible.builtin.git:
     repo: "{{ item.repo }}"
@@ -781,6 +801,38 @@ common_packages_fedora:
     key_file: "{{ item.key_file | default(omit) }}"
     accept_hostkey: true
   loop: "{{ deploy_git_apps }}"
+  when: item.repo is defined
+
+- name: Write inline compose files when provided
+  ansible.builtin.copy:
+    dest: "{{ item.dest }}/{{ item.compose_file_name | default('docker-compose.yaml') }}"
+    content: "{{ item.compose_file_content }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.compose_file_mode | default('0644') }}"
+  loop: "{{ deploy_git_apps }}"
+  when: item.compose_file_content is defined
+
+- name: Write env files when provided
+  ansible.builtin.copy:
+    dest: "{{ item.dest }}/{{ item.env_file_name | default('.env') }}"
+    content: "{{ item.env_content }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('root') }}"
+    mode: "{{ item.env_file_mode | default('0600') }}"
+  no_log: true
+  loop: "{{ deploy_git_apps }}"
+  when: item.env_content is defined
+
+- name: Write managed files for app stacks
+  ansible.builtin.copy:
+    dest: "{{ item.1.dest }}"
+    content: "{{ item.1.content }}"
+    owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
+    group: "{{ item.1.group | default(item.0.group | default('root')) }}"
+    mode: "{{ item.1.mode | default('0644') }}"
+  loop: "{{ deploy_git_apps | subelements('managed_files', skip_missing=true) }}"
+  no_log: "{{ item.1.secret | default(false) }}"
 
 - name: Deploy compose stacks
   community.docker.docker_compose_v2:
@@ -789,7 +841,7 @@ common_packages_fedora:
   when: item.compose | default(true)
   loop: "{{ deploy_git_apps }}"
 """,
-    "config/ansible/roles/deploy_git_app/defaults/main.yml": """deploy_git_apps: []
+    "config/ansible/roles/deploy_git_app/defaults/main.yml": """deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
 """,
     "config/ansible/roles/lxc_systemd_service/tasks/main.yml": """- name: Install Debian packages for LXC services
   ansible.builtin.apt:
@@ -802,6 +854,102 @@ common_packages_fedora:
     name: deploy_git_app
   vars:
     deploy_git_apps: "{{ lxc_git_apps }}"
+
+- name: Ensure go build revision stamp directory exists
+  ansible.builtin.file:
+    path: /var/lib/ansible-go-revs
+    state: directory
+    mode: "0755"
+  when: lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
+
+- name: Ensure requested Go toolchain version is installed
+  ansible.builtin.shell: |
+    set -euo pipefail
+    version="{{ item.go_version }}"
+    case "{{ ansible_architecture }}" in
+      x86_64) go_arch="amd64" ;;
+      aarch64) go_arch="arm64" ;;
+      *)
+        echo "Unsupported architecture for Go toolchain bootstrap: {{ ansible_architecture }}" >&2
+        exit 1
+        ;;
+    esac
+    current="$(/usr/local/go/bin/go version 2>/dev/null | awk '{print $3}' || true)"
+    if [ "$current" = "go${version}" ]; then
+      echo "unchanged"
+      exit 0
+    fi
+    url="https://go.dev/dl/go${version}.linux-${go_arch}.tar.gz"
+    tarball="/tmp/go${version}.linux-${go_arch}.tar.gz"
+    export GO_URL="$url"
+    export GO_TARBALL="$tarball"
+    python3 - <<'PY'
+    import os
+    import urllib.request
+    urllib.request.urlretrieve(os.environ["GO_URL"], os.environ["GO_TARBALL"])
+    PY
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf "$tarball"
+    ln -sf /usr/local/go/bin/go /usr/local/bin/go
+    ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
+    rm -f "$tarball"
+    echo "installed"
+  args:
+    executable: /bin/bash
+  loop: "{{ lxc_git_apps }}"
+  when:
+    - item.go_version is defined
+    - item.go_version | length > 0
+  register: lxc_go_toolchain_results
+  changed_when: >
+    not (lxc_go_toolchain_results.skipped | default(false))
+    and (
+      'installed' in (lxc_go_toolchain_results.results | default([])
+        | selectattr('stdout', 'defined')
+        | map(attribute='stdout')
+        | join(''))
+      or 'installed' in (lxc_go_toolchain_results.stdout | default(''))
+    )
+
+- name: Go build install for LXC git apps
+  ansible.builtin.shell: |
+    set -e
+    cd "{{ item.dest }}"
+    head=$(git rev-parse HEAD)
+    stamp="/var/lib/ansible-go-revs/{{ item.go_install_path | regex_replace('^/', '') | replace('/', '_') }}.rev"
+    if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$head" ] && [ -f "{{ item.go_install_path }}" ]; then
+      echo "unchanged"
+      exit 0
+    fi
+    GO_BIN="$(command -v go || true)"
+    if [ -x /usr/local/go/bin/go ]; then
+      GO_BIN="/usr/local/go/bin/go"
+    fi
+    if [ -z "$GO_BIN" ]; then
+      echo "go binary not found in PATH and /usr/local/go/bin/go is missing" >&2
+      exit 1
+    fi
+    "$GO_BIN" build {{ (item.go_build_args | default([])) | map('quote') | join(' ') }} -o "{{ item.go_install_path }}" .
+    printf '%s' "$head" > "$stamp"
+    echo "rebuilt"
+  args:
+    executable: /bin/bash
+  loop: "{{ lxc_git_apps }}"
+  environment: "{{ item.go_build_environment | default({}) }}"
+  when:
+    - item.repo is defined
+    - item.go_install_path is defined
+  register: lxc_go_build_results
+  changed_when: >
+    not (lxc_go_build_results.skipped | default(false))
+    and (
+      'rebuilt' in (lxc_go_build_results.results | default([])
+        | selectattr('stdout', 'defined')
+        | map(attribute='stdout')
+        | join(''))
+      or 'rebuilt' in (lxc_go_build_results.stdout | default(''))
+    )
+  notify: Restart LXC services
 
 - name: Install systemd unit files
   ansible.builtin.template:
@@ -841,10 +989,20 @@ After=network-online.target
 Type=simple
 User={{ item.user | default('root') }}
 WorkingDirectory={{ item.working_dir | default('/') }}
+{% if item.environment_file is defined and item.environment_file | length > 0 %}
+EnvironmentFile={{ item.environment_file }}
+{% endif %}
+{% if item.environment_files is defined %}
+{% for ef in item.environment_files %}
+EnvironmentFile={{ ef }}
+{% endfor %}
+{% endif %}
 ExecStart={{ item.exec_start }}
 Restart=always
 RestartSec=5
-Environment={{ item.environment | default('') }}
+{% if item.environment is defined and item.environment | length > 0 %}
+Environment={{ item.environment }}
+{% endif %}
 
 [Install]
 WantedBy=multi-user.target
@@ -857,7 +1015,7 @@ WantedBy=multi-user.target
 
 - name: Install lm-sensors on Debian/Fedora
   ansible.builtin.package:
-    name: lm_sensors
+    name: lm-sensors
     state: present
 """,
     "config/ansible/roles/existing_maintenance/defaults/main.yml": """existing_update_script: ""
@@ -997,8 +1155,10 @@ Use this flow for VM docker-compose apps (for example Frigate):
 Use this flow for Debian LXC systemd workloads:
 1. Add LXC in Terraform vars (`debian_lxcs`).
 2. Define `lxc_packages` and `lxc_git_apps` as needed.
-3. Define `lxc_systemd_services` entries with `exec_start`.
-4. Re-run `proxmox-compose apply`.
+3. Optional: set `go_install_path` on a `lxc_git_apps` entry to compile a Go module after `git` checkout (see `host_vars/smtp-to-tg.yml`).
+   Optional: set `go_version` (for example `1.25.0`) to bootstrap that Go toolchain from go.dev before build.
+4. Define `lxc_systemd_services` entries with `exec_start`; optional `environment_file` / `environment_files` for systemd `EnvironmentFile=`.
+5. Re-run `proxmox-compose apply`.
 """,
     "docs/secrets-and-ci.md": """# Secrets and CI
 
