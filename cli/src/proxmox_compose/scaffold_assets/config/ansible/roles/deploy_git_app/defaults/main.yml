@@ -1,6 +1,6 @@
 deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
 deploy_git_app_enable_compose: true
-deploy_git_app_ensure_groups: false
+deploy_git_app_ensure_groups: true
 deploy_git_app_ensure_groups_system: false
 # Shallow clone depth (>=1). Set to 0 for full history (git module ignores depth 0).
 deploy_git_app_git_clone_depth: 1

@@ -59,6 +59,48 @@
   loop_control:
     label: "{{ item.1.dest | dirname }} ← {{ item.1.dest }}"
 
+- name: Collect repository destinations for safe.directory
+  ansible.builtin.set_fact:
+    _deploy_git_app_repo_destinations: >-
+      {{
+        deploy_git_apps
+        | default([])
+        | selectattr('repo', 'defined')
+        | map(attribute='dest')
+        | select('defined')
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+
+- name: Read globally configured safe.directory paths
+  ansible.builtin.command:
+    argv:
+      - git
+      - config
+      - --global
+      - --get-all
+      - safe.directory
+  register: _deploy_git_app_safe_directories
+  changed_when: false
+  failed_when: false
+
+- name: Ensure repository destinations are trusted by git
+  ansible.builtin.command:
+    argv:
+      - git
+      - config
+      - --global
+      - --add
+      - safe.directory
+      - "{{ item }}"
+  when: item not in (_deploy_git_app_safe_directories.stdout_lines | default([]))
+  loop: "{{ _deploy_git_app_repo_destinations | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+
 - name: Checkout repositories
   ansible.builtin.git:
     repo: "{{ _deploy_git_app_resolved_repo }}"
