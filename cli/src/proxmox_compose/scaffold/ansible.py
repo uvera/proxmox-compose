@@ -246,12 +246,21 @@ deploy_git_app_enable_compose: true
     deploy_git_apps: "{{ lxc_git_apps }}"
     deploy_git_app_enable_compose: false
 
+- name: Assert supported architecture for Go builds
+  ansible.builtin.assert:
+    that:
+      - ansible_architecture in ["x86_64", "aarch64"]
+    fail_msg: "Unsupported architecture for Go build workflow: {{ ansible_architecture }}"
+  when: lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
+
 - name: Ensure go build revision stamp directory exists
   ansible.builtin.file:
     path: /var/lib/ansible-go-revs
     state: directory
     mode: "0755"
-  when: lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
+  when:
+    - not (lxc_go_build_local | bool)
+    - lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
 
 - name: Ensure requested Go toolchain version is installed
   ansible.builtin.shell: |
@@ -289,6 +298,7 @@ deploy_git_app_enable_compose: true
     executable: /bin/bash
   loop: "{{ lxc_git_apps }}"
   when:
+    - not (lxc_go_build_local | bool)
     - item.go_version is defined
     - item.go_version | length > 0
   register: lxc_go_toolchain_results
@@ -328,6 +338,7 @@ deploy_git_app_enable_compose: true
   loop: "{{ lxc_git_apps }}"
   environment: "{{ item.go_build_environment | default({}) }}"
   when:
+    - not (lxc_go_build_local | bool)
     - item.repo is defined
     - item.go_install_path is defined
   register: lxc_go_build_results
@@ -340,6 +351,114 @@ deploy_git_app_enable_compose: true
         | join(''))
       or 'rebuilt' in (lxc_go_build_results.stdout | default(''))
     )
+  notify: Restart LXC services
+
+- name: Ensure local Go binary is available
+  ansible.builtin.command: go version
+  delegate_to: localhost
+  become: false
+  changed_when: false
+  when:
+    - lxc_go_build_local | bool
+    - lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
+
+- name: Ensure local Go build cache directories exist
+  ansible.builtin.file:
+    path: "{{ lxc_go_local_build_cache_dir }}/{{ item }}"
+    state: directory
+    mode: "0755"
+  delegate_to: localhost
+  become: false
+  loop:
+    - src
+    - bin
+  when:
+    - lxc_go_build_local | bool
+    - lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
+
+- name: Read git revision for local Go builds
+  ansible.builtin.command: git -C "{{ item.dest }}" rev-parse HEAD
+  loop: "{{ lxc_git_apps }}"
+  when:
+    - lxc_go_build_local | bool
+    - item.repo is defined
+    - item.go_install_path is defined
+  register: lxc_go_git_head_results
+  changed_when: false
+
+- name: Sync local source checkouts for Go builds
+  ansible.builtin.git:
+    repo: "{{ item.item.repo }}"
+    dest: "{{ lxc_go_local_build_cache_dir }}/src/{{ inventory_hostname }}-{{ item.item.go_install_path | regex_replace('^/', '') | replace('/', '_') }}"
+    version: "{{ item.stdout }}"
+    key_file: "{{ item.item.key_file | default(omit) }}"
+    accept_hostkey: true
+    force: true
+  delegate_to: localhost
+  become: false
+  loop: "{{ lxc_go_git_head_results.results | default([]) }}"
+  when:
+    - lxc_go_build_local | bool
+    - not (item.skipped | default(false))
+
+- name: Build Go binaries locally for LXC git apps
+  ansible.builtin.command: >-
+    go build {{ (item.item.go_build_args | default([])) | map('quote') | join(' ') }}
+    -o "{{ local_binary_path }}" .
+  args:
+    chdir: "{{ lxc_go_local_build_cache_dir }}/src/{{ inventory_hostname }}-{{ item.item.go_install_path | regex_replace('^/', '') | replace('/', '_') }}"
+    creates: "{{ local_binary_path }}"
+  environment: >-
+    {{
+      (item.item.go_build_environment | default({}))
+      | combine({
+        'GOOS': 'linux',
+        'GOARCH': ('amd64' if ansible_architecture == 'x86_64' else 'arm64'),
+        'CGO_ENABLED': lxc_go_local_cgo_enabled
+      })
+    }}
+  vars:
+    local_build_signature: >-
+      {{
+        (
+          ((item.item.go_build_args | default([])) | join(' '))
+          ~ '|'
+          ~ ((item.item.go_build_environment | default({})) | to_json)
+          ~ '|'
+          ~ (lxc_go_local_cgo_enabled | string)
+        ) | hash('sha1')
+      }}
+    local_binary_path: "{{ lxc_go_local_build_cache_dir }}/bin/{{ inventory_hostname }}-{{ item.item.go_install_path | regex_replace('^/', '') | replace('/', '_') }}-{{ item.stdout }}-{{ local_build_signature }}"
+  delegate_to: localhost
+  become: false
+  loop: "{{ lxc_go_git_head_results.results | default([]) }}"
+  when:
+    - lxc_go_build_local | bool
+    - not (item.skipped | default(false))
+
+- name: Install locally built Go binaries on LXC
+  ansible.builtin.copy:
+    src: "{{ local_binary_path }}"
+    dest: "{{ item.item.go_install_path }}"
+    owner: "{{ item.item.owner | default('root') }}"
+    group: "{{ item.item.group | default('root') }}"
+    mode: "{{ item.item.go_install_mode | default('0755') }}"
+  vars:
+    local_build_signature: >-
+      {{
+        (
+          ((item.item.go_build_args | default([])) | join(' '))
+          ~ '|'
+          ~ ((item.item.go_build_environment | default({})) | to_json)
+          ~ '|'
+          ~ (lxc_go_local_cgo_enabled | string)
+        ) | hash('sha1')
+      }}
+    local_binary_path: "{{ lxc_go_local_build_cache_dir }}/bin/{{ inventory_hostname }}-{{ item.item.go_install_path | regex_replace('^/', '') | replace('/', '_') }}-{{ item.stdout }}-{{ local_build_signature }}"
+  loop: "{{ lxc_go_git_head_results.results | default([]) }}"
+  when:
+    - lxc_go_build_local | bool
+    - not (item.skipped | default(false))
   notify: Restart LXC services
 
 - name: Install systemd unit files
@@ -362,6 +481,10 @@ deploy_git_app_enable_compose: true
   - redis-server
 
 lxc_git_apps: []
+
+lxc_go_build_local: false
+lxc_go_local_build_cache_dir: "{{ lookup('env', 'HOME') }}/.cache/proxmox-compose/go-builds"
+lxc_go_local_cgo_enabled: "0"
 
 lxc_systemd_services: []
 """,
