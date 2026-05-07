@@ -1,9 +1,48 @@
+- name: Collect explicitly requested groups for deploy_git_app
+  ansible.builtin.set_fact:
+    _deploy_git_app_declared_groups: >-
+      {{
+        (
+          deploy_git_apps
+          | default([])
+          | map(attribute='group')
+          | select('defined')
+          | list
+        )
+        +
+        (
+          deploy_git_apps
+          | default([])
+          | map(attribute='managed_files')
+          | select('defined')
+          | flatten
+          | map(attribute='group')
+          | select('defined')
+          | list
+        )
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+
+- name: Ensure declared groups exist for app stacks
+  ansible.builtin.group:
+    name: "{{ item }}"
+    state: present
+    system: "{{ deploy_git_app_ensure_groups_system | bool }}"
+  loop: "{{ _deploy_git_app_declared_groups | default([]) }}"
+  when: deploy_git_app_ensure_groups | bool
+  loop_control:
+    label: "{{ item }}"
+
 - name: Ensure app directories exist
   ansible.builtin.file:
     path: "{{ item.dest }}"
     state: directory
     owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default('root') }}"
+    group: "{{ item.group | default(omit) }}"
     mode: "0755"
   loop: "{{ deploy_git_apps | default([]) }}"
   loop_control:
@@ -70,7 +109,7 @@
     dest: "{{ item.dest }}/{{ item.compose_file_name | default('docker-compose.yaml') }}"
     content: "{{ item.compose_file_content }}"
     owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default('root') }}"
+    group: "{{ item.group | default(omit) }}"
     mode: "{{ item.compose_file_mode | default('0644') }}"
   when: item.compose_file_content is defined
   loop: "{{ deploy_git_apps | default([]) }}"
@@ -82,7 +121,7 @@
     dest: "{{ item.dest }}/{{ item.env_file_name | default('.env') }}"
     content: "{{ item.env_content }}"
     owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default('root') }}"
+    group: "{{ item.group | default(omit) }}"
     mode: "{{ item.env_file_mode | default('0600') }}"
   no_log: true
   when: item.env_content is defined
@@ -95,7 +134,7 @@
     dest: "{{ item.1.dest }}"
     content: "{{ item.1.content }}"
     owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
-    group: "{{ item.1.group | default(item.0.group | default('root')) }}"
+    group: "{{ item.1.group | default(item.0.group | default(omit)) }}"
     mode: "{{ item.1.mode | default('0644') }}"
   loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
   loop_control:
