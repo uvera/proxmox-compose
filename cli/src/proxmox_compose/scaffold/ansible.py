@@ -25,11 +25,7 @@ callback_result_format = yaml
 """,
     "config/ansible/inventory/group_vars/all/main.yml": """ansible_python_interpreter: /usr/bin/python3
 
-vm_compose_apps:
-  - repo: "https://github.com/example/frigate-stack.git"
-    dest: "/opt/frigate"
-    version: "main"
-    compose: true
+vm_compose_apps: []
 
 lxc_systemd_services: []
 """,
