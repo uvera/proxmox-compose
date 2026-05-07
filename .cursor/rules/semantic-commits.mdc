@@ -1,0 +1,24 @@
+---
+description: Semantic commit message convention
+alwaysApply: true
+---
+
+# Semantic Commit Style
+
+- Use semantic commit messages in the format `type(scope): short subject`.
+- Keep the subject imperative, lowercase, and concise (about 50-72 chars).
+- Common types:
+  - `feat`: new behavior
+  - `fix`: bug fix
+  - `refactor`: internal restructure without behavior change
+  - `docs`: documentation-only change
+  - `test`: tests added or updated
+  - `chore`: tooling/build/maintenance
+- Prefer meaningful scopes like `cli`, `ansible`, `terraform`, `docs`, or `rules`.
+- Add a short body when useful to explain intent and impact.
+
+Examples:
+- `feat(cli): add vault editing command`
+- `fix(ansible): handle missing compose env files`
+- `refactor(terraform): split lxc defaults by module`
+
