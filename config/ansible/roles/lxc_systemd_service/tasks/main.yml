@@ -10,6 +10,102 @@
   vars:
     deploy_git_apps: "{{ lxc_git_apps }}"
 
+- name: Ensure go build revision stamp directory exists
+  ansible.builtin.file:
+    path: /var/lib/ansible-go-revs
+    state: directory
+    mode: "0755"
+  when: lxc_git_apps | selectattr('go_install_path', 'defined') | list | length > 0
+
+- name: Ensure requested Go toolchain version is installed
+  ansible.builtin.shell: |
+    set -euo pipefail
+    version="{{ item.go_version }}"
+    case "{{ ansible_architecture }}" in
+      x86_64) go_arch="amd64" ;;
+      aarch64) go_arch="arm64" ;;
+      *)
+        echo "Unsupported architecture for Go toolchain bootstrap: {{ ansible_architecture }}" >&2
+        exit 1
+        ;;
+    esac
+    current="$(/usr/local/go/bin/go version 2>/dev/null | awk '{print $3}' || true)"
+    if [ "$current" = "go${version}" ]; then
+      echo "unchanged"
+      exit 0
+    fi
+    url="https://go.dev/dl/go${version}.linux-${go_arch}.tar.gz"
+    tarball="/tmp/go${version}.linux-${go_arch}.tar.gz"
+    export GO_URL="$url"
+    export GO_TARBALL="$tarball"
+    python3 - <<'PY'
+    import os
+    import urllib.request
+    urllib.request.urlretrieve(os.environ["GO_URL"], os.environ["GO_TARBALL"])
+    PY
+    rm -rf /usr/local/go
+    tar -C /usr/local -xzf "$tarball"
+    ln -sf /usr/local/go/bin/go /usr/local/bin/go
+    ln -sf /usr/local/go/bin/gofmt /usr/local/bin/gofmt
+    rm -f "$tarball"
+    echo "installed"
+  args:
+    executable: /bin/bash
+  loop: "{{ lxc_git_apps }}"
+  when:
+    - item.go_version is defined
+    - item.go_version | length > 0
+  register: lxc_go_toolchain_results
+  changed_when: >
+    not (lxc_go_toolchain_results.skipped | default(false))
+    and (
+      'installed' in (lxc_go_toolchain_results.results | default([])
+        | selectattr('stdout', 'defined')
+        | map(attribute='stdout')
+        | join(''))
+      or 'installed' in (lxc_go_toolchain_results.stdout | default(''))
+    )
+
+- name: Go build install for LXC git apps
+  ansible.builtin.shell: |
+    set -e
+    cd "{{ item.dest }}"
+    head=$(git rev-parse HEAD)
+    stamp="/var/lib/ansible-go-revs/{{ item.go_install_path | regex_replace('^/', '') | replace('/', '_') }}.rev"
+    if [ -f "$stamp" ] && [ "$(cat "$stamp")" = "$head" ] && [ -f "{{ item.go_install_path }}" ]; then
+      echo "unchanged"
+      exit 0
+    fi
+    GO_BIN="$(command -v go || true)"
+    if [ -x /usr/local/go/bin/go ]; then
+      GO_BIN="/usr/local/go/bin/go"
+    fi
+    if [ -z "$GO_BIN" ]; then
+      echo "go binary not found in PATH and /usr/local/go/bin/go is missing" >&2
+      exit 1
+    fi
+    "$GO_BIN" build {{ (item.go_build_args | default([])) | map('quote') | join(' ') }} -o "{{ item.go_install_path }}" .
+    printf '%s' "$head" > "$stamp"
+    echo "rebuilt"
+  args:
+    executable: /bin/bash
+  loop: "{{ lxc_git_apps }}"
+  environment: "{{ item.go_build_environment | default({}) }}"
+  when:
+    - item.repo is defined
+    - item.go_install_path is defined
+  register: lxc_go_build_results
+  changed_when: >
+    not (lxc_go_build_results.skipped | default(false))
+    and (
+      'rebuilt' in (lxc_go_build_results.results | default([])
+        | selectattr('stdout', 'defined')
+        | map(attribute='stdout')
+        | join(''))
+      or 'rebuilt' in (lxc_go_build_results.stdout | default(''))
+    )
+  notify: Restart LXC services
+
 - name: Install systemd unit files
   ansible.builtin.template:
     src: service.j2
