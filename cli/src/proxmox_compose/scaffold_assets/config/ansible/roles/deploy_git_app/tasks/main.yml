@@ -6,6 +6,8 @@
     group: "{{ item.group | default('root') }}"
     mode: "0755"
   loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
 
 - name: Ensure managed file parent directories exist
   ansible.builtin.file:
@@ -15,6 +17,8 @@
     group: root
     mode: "0755"
   loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.1.dest | dirname }} ← {{ item.1.dest }}"
 
 - name: Checkout repositories
   ansible.builtin.git:
@@ -23,8 +27,14 @@
     version: "{{ item.version | default('main') }}"
     key_file: "{{ item.key_file | default(omit) }}"
     accept_hostkey: true
+    depth: "{{ item.git_clone_depth | default(deploy_git_app_git_clone_depth | default(1)) }}"
+    single_branch: "{{ item.git_single_branch | default(true) }}"
+  environment:
+    GIT_TERMINAL_PROMPT: "0"
   when: item.repo is defined
   loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.repo }} → {{ item.dest }}"
 
 - name: Write inline compose files when provided
   ansible.builtin.copy:
@@ -35,6 +45,8 @@
     mode: "{{ item.compose_file_mode | default('0644') }}"
   when: item.compose_file_content is defined
   loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
 
 - name: Write env files when provided
   ansible.builtin.copy:
@@ -46,6 +58,8 @@
   no_log: true
   when: item.env_content is defined
   loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
 
 - name: Write managed files for app stacks
   ansible.builtin.copy:
@@ -55,6 +69,8 @@
     group: "{{ item.1.group | default(item.0.group | default('root')) }}"
     mode: "{{ item.1.mode | default('0644') }}"
   loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.1.dest }}"
   no_log: "{{ item.1.secret | default(false) }}"
 
 - name: Deploy compose stacks
@@ -66,3 +82,5 @@
     - deploy_git_app_enable_compose | bool
     - item.compose | default(true)
   loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
