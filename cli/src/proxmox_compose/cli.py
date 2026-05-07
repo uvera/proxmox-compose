@@ -6,6 +6,7 @@ from proxmox_compose.commands.init import init_command
 from proxmox_compose.commands.inventory import inventory_app
 from proxmox_compose.commands.plan import plan_command
 from proxmox_compose.commands.provision_existing import provision_existing_command
+from proxmox_compose.commands.scaffold import scaffold_app
 from proxmox_compose.commands.vault import vault_app
 
 app = Typer(
@@ -20,4 +21,5 @@ app.command("apply")(apply_command)
 app.command("provision-existing")(provision_existing_command)
 app.command("doctor")(doctor_command)
 app.add_typer(inventory_app, name="inventory")
+app.add_typer(scaffold_app, name="scaffold")
 app.add_typer(vault_app, name="vault")

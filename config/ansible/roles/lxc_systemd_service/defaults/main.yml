@@ -4,6 +4,8 @@ lxc_packages:
 
 lxc_git_apps: []
 
+lxc_python_apps: []
+
 lxc_go_build_local: false
 lxc_go_local_build_cache_dir: "{{ lookup('env', 'HOME') }}/.cache/proxmox-compose/go-builds"
 lxc_go_local_cgo_enabled: "0"

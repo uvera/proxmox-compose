@@ -1,9 +1,12 @@
 [Unit]
 Description={{ item.description | default(item.name) }}
-After=network-online.target
+After={{ (['network-online.target'] + (item.after | default([]))) | unique | join(' ') }}
+{% if item.wants is defined and item.wants | length > 0 %}
+Wants={{ item.wants | join(' ') }}
+{% endif %}
 
 [Service]
-Type=simple
+Type={{ item.service_type | default('simple') }}
 User={{ item.user | default('root') }}
 WorkingDirectory={{ item.working_dir | default('/') }}
 {% if item.environment_file is defined and item.environment_file | length > 0 %}
@@ -14,9 +17,14 @@ EnvironmentFile={{ item.environment_file }}
 EnvironmentFile={{ ef }}
 {% endfor %}
 {% endif %}
+{% if item.exec_start_pre is defined %}
+{% for exec_pre in item.exec_start_pre %}
+ExecStartPre={{ exec_pre }}
+{% endfor %}
+{% endif %}
 ExecStart={{ item.exec_start }}
-Restart=always
-RestartSec=5
+Restart={{ item.restart | default('always') }}
+RestartSec={{ item.restart_sec | default(5) }}
 {% if item.environment is defined and item.environment | length > 0 %}
 Environment={{ item.environment }}
 {% endif %}

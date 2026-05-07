@@ -461,6 +461,84 @@ deploy_git_app_enable_compose: true
     - not (item.skipped | default(false))
   notify: Restart LXC services
 
+- name: Ensure Python app runtime users exist
+  ansible.builtin.group:
+    name: "{{ item.group | default(item.user) }}"
+    state: present
+  loop: "{{ lxc_python_apps }}"
+  when:
+    - item.user is defined
+    - item.user != "root"
+
+- name: Ensure Python app runtime users exist
+  ansible.builtin.user:
+    name: "{{ item.user }}"
+    group: "{{ item.group | default(item.user) }}"
+    create_home: "{{ item.create_home | default(true) }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+  loop: "{{ lxc_python_apps }}"
+  when:
+    - item.user is defined
+    - item.user != "root"
+
+- name: Ensure Python app directories are owned by runtime users
+  ansible.builtin.file:
+    path: "{{ item.app_dir }}"
+    state: directory
+    owner: "{{ item.user | default('root') }}"
+    group: "{{ item.group | default(item.user | default('root')) }}"
+    mode: "0755"
+    recurse: true
+  loop: "{{ lxc_python_apps }}"
+
+- name: Ensure Python virtual environments exist
+  ansible.builtin.command:
+    argv:
+      - "{{ item.python_bin | default('python3') }}"
+      - -m
+      - venv
+      - "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
+    creates: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}/bin/python"
+  loop: "{{ lxc_python_apps }}"
+  become_user: "{{ item.user | default('root') }}"
+
+- name: Upgrade pip in Python virtual environments
+  ansible.builtin.pip:
+    name: pip
+    state: latest
+    virtualenv: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
+    virtualenv_python: "{{ item.python_bin | default('python3') }}"
+  loop: "{{ lxc_python_apps }}"
+  become_user: "{{ item.user | default('root') }}"
+
+- name: Install Python applications in editable mode
+  ansible.builtin.pip:
+    name: "{{ item.app_dir }}"
+    editable: true
+    state: present
+    virtualenv: "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}"
+    virtualenv_python: "{{ item.python_bin | default('python3') }}"
+  loop: "{{ lxc_python_apps }}"
+  become_user: "{{ item.user | default('root') }}"
+  notify: Restart LXC services
+
+- name: Run Python app migrations
+  ansible.builtin.shell: |
+    set -euo pipefail
+    set -a
+    source "{{ item.environment_file }}"
+    set +a
+    "{{ item.venv_dir | default(item.app_dir ~ '/.venv') }}/bin/alembic" upgrade head
+  args:
+    executable: /bin/bash
+    chdir: "{{ item.app_dir }}"
+  loop: "{{ lxc_python_apps }}"
+  become_user: "{{ item.user | default('root') }}"
+  when:
+    - item.migrate | default(false)
+    - item.environment_file is defined
+  changed_when: false
+
 - name: Install systemd unit files
   ansible.builtin.template:
     src: service.j2
@@ -482,6 +560,8 @@ deploy_git_app_enable_compose: true
 
 lxc_git_apps: []
 
+lxc_python_apps: []
+
 lxc_go_build_local: false
 lxc_go_local_build_cache_dir: "{{ lookup('env', 'HOME') }}/.cache/proxmox-compose/go-builds"
 lxc_go_local_cgo_enabled: "0"
@@ -497,10 +577,13 @@ lxc_systemd_services: []
 """,
     "config/ansible/roles/lxc_systemd_service/templates/service.j2": """[Unit]
 Description={{ item.description | default(item.name) }}
-After=network-online.target
+After={{ (['network-online.target'] + (item.after | default([]))) | unique | join(' ') }}
+{% if item.wants is defined and item.wants | length > 0 %}
+Wants={{ item.wants | join(' ') }}
+{% endif %}
 
 [Service]
-Type=simple
+Type={{ item.service_type | default('simple') }}
 User={{ item.user | default('root') }}
 WorkingDirectory={{ item.working_dir | default('/') }}
 {% if item.environment_file is defined and item.environment_file | length > 0 %}
@@ -511,9 +594,14 @@ EnvironmentFile={{ item.environment_file }}
 EnvironmentFile={{ ef }}
 {% endfor %}
 {% endif %}
+{% if item.exec_start_pre is defined %}
+{% for exec_pre in item.exec_start_pre %}
+ExecStartPre={{ exec_pre }}
+{% endfor %}
+{% endif %}
 ExecStart={{ item.exec_start }}
-Restart=always
-RestartSec=5
+Restart={{ item.restart | default('always') }}
+RestartSec={{ item.restart_sec | default(5) }}
 {% if item.environment is defined and item.environment | length > 0 %}
 Environment={{ item.environment }}
 {% endif %}
