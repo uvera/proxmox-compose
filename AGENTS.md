@@ -28,6 +28,7 @@ This git repository is the **`proxmox-compose` CLI** and embedded scaffold templ
 - **Deploy/update non-Docker app in Debian LXC**: use `lxc_systemd_service`.
 - **Manage pre-existing infrastructure**: inventory in `existing_hosts` / `existing_docker_vms` + `provision-existing`.
 - **Inject secrets (`.env`, keys, tokens)**: Ansible Vault values consumed by host/group vars.
+- **Expose a VM/LXC service on the tailnet or via Funnel**: opt-in `tailscale` role + `tailscale_serve` (see scaffold `docs/tailscale-on-lxc.md`).
 
 ## Existing Host Approaches
 - **Git-managed app**: set `repo`, `dest`, optional `version`, and run compose.

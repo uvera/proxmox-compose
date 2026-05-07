@@ -18,6 +18,7 @@ When assisting in this repository:
 - Use `provision-existing` for brownfield/existing machines.
 - Use host vars for per-host compose and `.env` behavior.
 - Use vault-backed variables for secrets material.
+- For Tailscale Serve/Funnel on VMs or Debian LXCs, use the opt-in `tailscale` role (`tailscale_enable`, `tailscale_serve`); see `docs/tailscale-on-lxc.md`.
 
 ## Secrets and Sensitive Data
 - Never commit real secrets, API keys, or host-private credentials.

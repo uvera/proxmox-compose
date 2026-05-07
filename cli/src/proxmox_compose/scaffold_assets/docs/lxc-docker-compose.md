@@ -51,3 +51,7 @@ The `lxc_docker` role installs `docker.io` and `docker-compose-plugin` on Debian
 ## 4. When to prefer a VM
 
 For heavy or security-sensitive Compose workloads, the project still defaults to **VMs** (`vm_docker`): simpler device passthrough and stronger isolation. LXCs are appropriate when you accept CT trade-offs and apply nesting + (if needed) the AppArmor workaround above.
+
+## 5. Tailscale Serve / Funnel on the same LXC
+
+To run Tailscale **natively** on the LXC (alongside Docker) for Serve or Funnel, see [tailscale-on-lxc.md](tailscale-on-lxc.md) (kernel TUN on the Proxmox host, vault key, and `tailscale_serve` examples).

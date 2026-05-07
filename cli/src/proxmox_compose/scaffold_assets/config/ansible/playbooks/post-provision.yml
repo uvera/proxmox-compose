@@ -4,6 +4,12 @@
   roles:
     - role: common
 
+- name: Configure Tailscale on VMs and LXCs
+  hosts: debian_vms:fedora_vms:debian_lxcs
+  become: true
+  roles:
+    - role: tailscale
+
 - name: Configure Docker workloads on VMs
   hosts: debian_vms:fedora_vms
   become: true

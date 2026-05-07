@@ -1,0 +1,21 @@
+# Opt-in Tailscale install, join, and declarative Serve/Funnel. See docs/tailscale-on-lxc.md.
+tailscale_enable: false
+tailscale_authkey: ""
+tailscale_hostname: "{{ inventory_hostname }}"
+tailscale_tags: []
+tailscale_ephemeral: false
+tailscale_advertise_routes: []
+tailscale_accept_routes: false
+tailscale_accept_dns: true
+tailscale_ssh: false
+# Extra CLI args for `tailscale up`, for example ["--shields-up"].
+tailscale_extra_up_args: []
+
+# Declarative Serve/Funnel (reverse proxy) rules, Tailscale 1.52+ CLI shape:
+# - port: 443
+#   protocol: https          # https | http (Funnel requires https + allowed ports)
+#   target: "http://127.0.0.1:8080"
+#   mount: "/"                # optional, URL path prefix
+#   funnel: false             # true => tailscale funnel (public); false => tailscale serve (tailnet-only)
+# Optional keys: proxy_protocol (int, for TCP modes — see Tailscale docs).
+tailscale_serve: []

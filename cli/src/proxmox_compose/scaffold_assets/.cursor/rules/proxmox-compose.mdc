@@ -10,6 +10,7 @@ alwaysApply: true
 - Support Debian and Fedora VMs; support Debian-only LXCs.
 - Prefer VM deployment for Docker Compose workloads (for example Frigate).
 - For LXC app workloads: use systemd units (`lxc_systemd_service`), or Docker Compose on Debian LXCs (`lxc_docker` + nesting; AppArmor workaround on the Proxmox host if runc breaks Docker — see `docs/lxc-docker-compose.md`).
+- Optional Tailscale Serve/Funnel on VMs or LXCs: opt-in Ansible role `tailscale` (`tailscale_enable`, vault-backed `tailscale_authkey`, declarative `tailscale_serve`); unprivileged LXCs need host-side TUN — see `docs/tailscale-on-lxc.md`.
 - Never perform destructive Proxmox operations unless user explicitly requests it.
 - Keep inventory synced before running Ansible against provisioned resources.
 - Use `provision-existing` for brownfield hosts instead of forcing Terraform ownership.

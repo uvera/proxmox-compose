@@ -1,0 +1,32 @@
+# Example: Debian LXC with Docker Compose + Tailscale Serve/Funnel (group debian_lxcs).
+# Rename to match your inventory hostname.
+#
+# Prerequisites:
+# - MagicDNS, HTTPS for your tailnet, and Funnel nodeAttrs policy (see docs/tailscale-on-lxc.md).
+# - For unprivileged LXC: kernel TUN on the Proxmox host (same doc).
+# - Add tailscale_authkey to encrypted vault.yml (see group_vars/all/vault.example.yml).
+
+tailscale_enable: true
+tailscale_tags:
+  - tag:funnel
+
+tailscale_serve:
+  - port: 443
+    protocol: https
+    target: "http://127.0.0.1:8080"
+    mount: "/"
+    funnel: true
+
+lxc_compose_apps:
+  - dest: "/opt/example-stack"
+    owner: "root"
+    group: "root"
+    compose: true
+    compose_file_name: "compose.yaml"
+    compose_file_content: |
+      services:
+        web:
+          image: nginx:alpine
+          restart: unless-stopped
+          ports:
+            - "8080:80"

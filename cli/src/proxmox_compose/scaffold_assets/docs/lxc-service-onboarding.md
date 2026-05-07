@@ -2,6 +2,8 @@
 
 For **Docker Compose on an LXC** (instead of systemd apps), see [lxc-docker-compose.md](lxc-docker-compose.md).
 
+To run **Tailscale Serve or Funnel on the same Debian LXC** (native `tailscaled` alongside Compose or systemd workloads), see [tailscale-on-lxc.md](tailscale-on-lxc.md).
+
 Use this flow for Debian LXC systemd workloads:
 1. Add LXC in Terraform vars (`debian_lxcs`).
 2. Define `lxc_packages` and `lxc_git_apps` as needed.

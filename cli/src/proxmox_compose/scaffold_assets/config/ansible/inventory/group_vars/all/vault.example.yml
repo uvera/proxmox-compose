@@ -7,6 +7,9 @@
 #   -----END OPENSSH PRIVATE KEY-----
 #
 # github_pat: "ghp_..."  # GitHub classic PAT, or fine-grained token with repo read
+#
+# Tailscale node auth (pre-approved key). Use with tailscale_enable: true in host_vars.
+# tailscale_authkey: "tskey-auth-..."
 
 # frigate_env_content: |
 #   MQTT_PASSWORD=...

@@ -6,3 +6,6 @@ lxc_compose_apps: []
 lxc_docker_enable: false
 
 lxc_systemd_services: []
+
+tailscale_enable: false
+tailscale_serve: []

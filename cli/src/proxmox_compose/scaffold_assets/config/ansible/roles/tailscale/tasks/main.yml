@@ -1,0 +1,155 @@
+---
+- name: Configure Tailscale
+  when: tailscale_enable | bool
+  block:
+    - name: Require Tailscale auth key when role is enabled
+      ansible.builtin.assert:
+        that:
+          - tailscale_authkey is defined
+          - (tailscale_authkey | default('') | string | length) > 0
+        fail_msg: >-
+          Set tailscale_authkey (vault-backed) when tailscale_enable is true.
+          See docs/tailscale-on-lxc.md.
+
+    - name: Validate Tailscale Funnel listener ports
+      ansible.builtin.assert:
+        that:
+          - (item.port | int) in [443, 8443, 10000]
+        fail_msg: >-
+          Funnel requires port 443, 8443, or 10000 (Tailscale Funnel limitation).
+          Offending entry: {{ item }}.
+      loop: "{{ tailscale_serve }}"
+      when: item.funnel | default(false) | bool
+      loop_control:
+        label: "{{ item.port | default('?') }}"
+
+    - name: Require TUN device for Tailscale inside LXC
+      when: ansible_virtualization_type | default('') in ['lxc', 'container', 'openvz']
+      block:
+        - name: Stat /dev/net/tun
+          ansible.builtin.stat:
+            path: /dev/net/tun
+          register: tailscale_tun
+
+        - name: Assert /dev/net/tun is available
+          ansible.builtin.assert:
+            that:
+              - tailscale_tun.stat is defined
+              - tailscale_tun.stat.exists | bool
+            fail_msg: >-
+              /dev/net/tun is missing inside this LXC. Tailscale needs kernel TUN.
+              On the Proxmox host, add the lines in docs/tailscale-on-lxc.md to
+              /etc/pve/lxc/<vmid>.conf, then restart the CT.
+
+    - name: Ensure gnupg for Tailscale apt keyring (Debian)
+      ansible.builtin.apt:
+        name: gnupg
+        state: present
+      when: ansible_facts["os_family"] == "Debian"
+
+    - name: Download Tailscale Debian signing key
+      ansible.builtin.get_url:
+        url: "https://pkgs.tailscale.com/stable/debian/{{ ansible_distribution_release }}.noarmor.gpg"
+        dest: "/tmp/tailscale-{{ ansible_distribution_release }}.gpg"
+        mode: "0644"
+      when: ansible_facts["os_family"] == "Debian"
+
+    - name: Install Tailscale apt keyring (Debian)
+      ansible.builtin.shell: |
+        set -euo pipefail
+        gpg --dearmor < "/tmp/tailscale-{{ ansible_distribution_release }}.gpg" > /usr/share/keyrings/tailscale-archive-keyring.gpg
+      args:
+        creates: /usr/share/keyrings/tailscale-archive-keyring.gpg
+      when: ansible_facts["os_family"] == "Debian"
+
+    - name: Add Tailscale apt repository (Debian)
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg]
+          https://pkgs.tailscale.com/stable/debian {{ ansible_distribution_release }} main
+        filename: tailscale
+        state: present
+      when: ansible_facts["os_family"] == "Debian"
+
+    - name: Install Tailscale package (Debian)
+      ansible.builtin.apt:
+        name: tailscale
+        state: present
+        update_cache: true
+      when: ansible_facts["os_family"] == "Debian"
+      notify: Restart tailscaled
+
+    - name: Add Tailscale yum repository (Fedora)
+      ansible.builtin.get_url:
+        url: https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+        dest: /etc/yum.repos.d/tailscale.repo
+        mode: "0644"
+      when: ansible_facts["distribution"] == "Fedora"
+
+    - name: Install Tailscale package (Fedora)
+      ansible.builtin.dnf:
+        name: tailscale
+        state: present
+      when: ansible_facts["distribution"] == "Fedora"
+      notify: Restart tailscaled
+
+    - name: Ensure tailscaled is running
+      ansible.builtin.service:
+        name: tailscaled
+        enabled: true
+        state: started
+
+    - name: Read Tailscale status JSON
+      ansible.builtin.command: tailscale status --json
+      register: tailscale_status_json
+      changed_when: false
+      failed_when: false
+
+    - name: Parse Tailscale status JSON
+      ansible.builtin.set_fact:
+        tailscale_status: "{{ tailscale_status_json.stdout | default('{}') | from_json }}"
+
+    - name: Decide whether tailscale up should run
+      ansible.builtin.set_fact:
+        tailscale_needs_up: "{{ (tailscale_status_json.rc | default(1)) != 0 or (tailscale_status.BackendState | default('')) != 'Running' or (((tailscale_hostname | default('') | string | length) > 0) and (((tailscale_status.Self | default({})).HostName | default('')) != (tailscale_hostname | string))) }}"
+
+    - name: Build tailscale up argv
+      ansible.builtin.set_fact:
+        tailscale_up_argv: "{{ _tailscale_up_argv }}"
+      vars:
+        _tailscale_up_argv: "{{ ['tailscale', 'up', '--yes', '--authkey=' ~ tailscale_authkey] + (['--hostname=' ~ (tailscale_hostname | string)] if (tailscale_hostname | default('') | string | length) > 0 else []) + (['--advertise-tags=' ~ (tailscale_tags | join(','))] if (tailscale_tags | default([]) | length) > 0 else []) + (['--advertise-routes=' ~ (tailscale_advertise_routes | join(','))] if (tailscale_advertise_routes | default([]) | length) > 0 else []) + (['--accept-routes'] if tailscale_accept_routes | default(false) | bool else []) + (['--accept-dns=false'] if not (tailscale_accept_dns | default(true) | bool) else []) + (['--ssh'] if tailscale_ssh | default(false) | bool else []) + (['--ephemeral'] if tailscale_ephemeral | default(false) | bool else []) + (tailscale_extra_up_args | default([])) }}"
+
+    - name: Join or refresh Tailscale session
+      ansible.builtin.command:
+        argv: "{{ tailscale_up_argv }}"
+      when: tailscale_needs_up | bool
+      no_log: true
+      register: tailscale_up_cmd
+      changed_when: true
+      failed_when: tailscale_up_cmd.rc != 0
+
+    - name: Deploy Tailscale Serve/Funnel reconcile helper
+      ansible.builtin.copy:
+        src: reconcile_serve.py
+        dest: /usr/local/lib/proxmox-compose-tailscale-reconcile.py
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Write desired Tailscale Serve/Funnel JSON
+      ansible.builtin.copy:
+        dest: /run/tailscale-desired-serve.json
+        owner: root
+        group: root
+        mode: "0600"
+        content: "{{ tailscale_serve | default([]) | to_nice_json }}"
+
+    - name: Reconcile Tailscale Serve and Funnel configuration
+      ansible.builtin.command:
+        argv:
+          - /usr/bin/python3
+          - /usr/local/lib/proxmox-compose-tailscale-reconcile.py
+          - /run/tailscale-desired-serve.json
+      register: tailscale_serve_reconcile
+      changed_when: >-
+        ((tailscale_serve_reconcile.stdout | default('{}')) | from_json).changed | default(false) | bool
