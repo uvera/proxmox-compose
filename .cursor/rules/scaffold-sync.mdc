@@ -1,0 +1,27 @@
+---
+description: Keep Ansible scaffolding synced with live role changes
+alwaysApply: true
+---
+
+# Scaffold Synchronization Rule
+
+When editing tracked Ansible role/playbook templates that are also embedded in
+`cli/src/proxmox_compose/scaffold/ansible.py`, always update both:
+
+- The live file under `config/ansible/**`
+- The matching string template in `cli/src/proxmox_compose/scaffold/ansible.py`
+
+## Required behavior
+
+- Treat scaffold templates as first-class source files, not optional follow-up.
+- In the same task/PR, keep generated scaffold content behaviorally equivalent to
+  the live file changes.
+- Preserve backward compatibility unless the user explicitly requests a breaking
+  scaffold change.
+- Validate after edits (at minimum Ansible syntax check for impacted playbooks).
+
+## Common sync targets
+
+- `config/ansible/roles/deploy_git_app/**`
+- `config/ansible/roles/lxc_systemd_service/**`
+- `config/ansible/playbooks/**` when represented in scaffold templates
