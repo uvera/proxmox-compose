@@ -9,5 +9,5 @@ cli/build/
 *.tfstate.*
 terraform.tfvars
 
-config/ansible/group_vars/all/vault.yml
+config/ansible/inventory/group_vars/all/vault.yml
 .cursor/plans/

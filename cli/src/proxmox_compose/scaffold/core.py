@@ -9,7 +9,7 @@ __pycache__/
 *.tfstate.*
 terraform.tfvars
 
-config/ansible/group_vars/all/vault.yml
+config/ansible/inventory/group_vars/all/vault.yml
 .cursor/plans/
 """,
     "README.md": """# Proxmox Compose
@@ -63,8 +63,8 @@ proxmox-compose inventory sync --workspace .
 - `config/ansible/playbooks/` - orchestration playbooks.
 - `config/ansible/roles/` - reusable host/app roles.
 - `config/ansible/inventory/` - static + generated inventory.
-- `config/ansible/host_vars/` - per-host overrides (existing host patterns).
-- `config/ansible/group_vars/` - shared variables and vault references.
+- `config/ansible/inventory/host_vars/` - per-host overrides (existing host patterns).
+- `config/ansible/inventory/group_vars/` - shared variables and vault references.
 - `docs/` - onboarding and operational guidance.
 - `.cursor/rules/`, `AGENTS.md`, `CLAUDE.md` - AI/agent guidance.
 
@@ -74,8 +74,8 @@ For existing Docker VMs:
 
 1. Add host to `existing_hosts` and/or `existing_docker_vms` in
    `config/ansible/inventory/static.yml`.
-2. Create `config/ansible/host_vars/<host>.yml` (see
-   `config/ansible/host_vars/example_existing_docker_vm.yml`).
+2. Create `config/ansible/inventory/host_vars/<host>.yml` (see
+   `config/ansible/inventory/host_vars/example_existing_docker_vm.yml`).
 3. Choose approach:
    - git-based app (`repo` + `dest`)
    - inline compose (`compose_file_content`)
@@ -90,7 +90,7 @@ To update Frigate image tag as code:
 
 - Keep secret values out of tracked files.
 - Put sensitive vars into encrypted vault files (for example
-  `config/ansible/group_vars/all/vault.yml`).
+  `config/ansible/inventory/group_vars/all/vault.yml`).
 - Reference those values from host/group vars (for example `.env` content).
 
 ## Validation

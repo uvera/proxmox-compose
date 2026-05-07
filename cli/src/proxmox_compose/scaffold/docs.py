@@ -12,7 +12,7 @@ Use this flow for VM docker-compose apps (for example Frigate):
 Use this flow for Debian LXC systemd workloads:
 1. Add LXC in Terraform vars (`debian_lxcs`).
 2. Define `lxc_packages` and `lxc_git_apps` as needed.
-3. Optional: set `go_install_path` on a `lxc_git_apps` entry to compile a Go module after `git` checkout (see `host_vars/smtp-to-tg.yml`).
+3. Optional: set `go_install_path` on a `lxc_git_apps` entry to compile a Go module after `git` checkout (see `inventory/host_vars/smtp-to-tg.yml`).
    Optional: set `go_version` (for example `1.25.0`) to bootstrap that Go toolchain from go.dev before build.
 4. Define `lxc_systemd_services` entries with `exec_start`; optional `environment_file` / `environment_files` for systemd `EnvironmentFile=`.
 5. Re-run `proxmox-compose apply`.
@@ -22,7 +22,7 @@ Use this flow for Debian LXC systemd workloads:
 ## Secrets
 - Keep sensitive values out of `terraform.tfvars`.
 - Use `~/.config/proxmox-compose/profiles.yml` for local profile env vars.
-- Use Ansible Vault for repository secrets (`group_vars/all/vault.yml`).
+- Use Ansible Vault for repository secrets (`inventory/group_vars/all/vault.yml`).
 
 ## CI Validation
 Run these checks in CI:

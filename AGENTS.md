@@ -31,7 +31,7 @@ This repository uses `proxmox-compose` as the primary interface.
 
 ## Frigate Update Path (Example Pattern)
 1. Put host in `existing_docker_vms`.
-2. Define host vars in `config/ansible/host_vars/<host>.yml` with compose content or repo source.
+2. Define host vars in `config/ansible/inventory/host_vars/<host>.yml` with compose content or repo source.
 3. Store `.env` payload in encrypted vault vars (for example `frigate_env_content`).
 4. Change image tag in compose definition.
 5. Run `proxmox-compose provision-existing`.

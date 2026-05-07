@@ -5,7 +5,8 @@ import typer
 from proxmox_compose.engines.runner import run_command
 
 vault_app = typer.Typer(help="Ansible Vault helpers.")
-DEFAULT_VAULT_FILE = Path("config/ansible/group_vars/all/vault.yml")
+DEFAULT_VAULT_FILE = Path("config/ansible/inventory/group_vars/all/vault.yml")
+LEGACY_VAULT_FILE = Path("config/ansible/group_vars/all/vault.yml")
 
 
 @vault_app.command("edit")
@@ -33,8 +34,15 @@ def vault_edit_command(
     if not ansible_dir.exists():
         raise typer.BadParameter(f"Ansible directory not found: {ansible_dir}")
 
-    target_file = vault_file if vault_file.is_absolute() else (ws / vault_file)
-    target_file = target_file.resolve()
+    if vault_file.is_absolute():
+        target_file = vault_file.resolve()
+    else:
+        default_target = (ws / vault_file).resolve()
+        legacy_target = (ws / LEGACY_VAULT_FILE).resolve()
+        if vault_file == DEFAULT_VAULT_FILE and not default_target.exists() and legacy_target.exists():
+            target_file = legacy_target
+        else:
+            target_file = default_target
     if target_file.exists() and target_file.is_dir():
         raise typer.BadParameter(f"Vault path points to a directory: {target_file}")
 

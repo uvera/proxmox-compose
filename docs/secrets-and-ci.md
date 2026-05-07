@@ -3,7 +3,7 @@
 ## Secrets
 - Keep sensitive values out of `terraform.tfvars`.
 - Use `~/.config/proxmox-compose/profiles.yml` for local profile env vars.
-- Use Ansible Vault for repository secrets (`group_vars/all/vault.yml`).
+- Use Ansible Vault for repository secrets (`inventory/group_vars/all/vault.yml`).
 
 ## CI Validation
 Run these checks in CI:

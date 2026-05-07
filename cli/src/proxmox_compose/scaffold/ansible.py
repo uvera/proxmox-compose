@@ -23,7 +23,7 @@ callback_result_format = yaml
     "config/ansible/inventory/generated.yml": """all:
   children: {}
 """,
-    "config/ansible/group_vars/all/main.yml": """ansible_python_interpreter: /usr/bin/python3
+    "config/ansible/inventory/group_vars/all/main.yml": """ansible_python_interpreter: /usr/bin/python3
 
 vm_compose_apps:
   - repo: "https://github.com/example/frigate-stack.git"
@@ -33,7 +33,7 @@ vm_compose_apps:
 
 lxc_systemd_services: []
 """,
-    "config/ansible/group_vars/all/vault.example.yml": """# Encrypt this file as vault.yml using ansible-vault.
+    "config/ansible/inventory/group_vars/all/vault.example.yml": """# Encrypt this file as vault.yml using ansible-vault.
 #
 # example:
 # private_repo_deploy_key: |
@@ -46,9 +46,9 @@ lxc_systemd_services: []
 #   OPENAI_API_KEY=...
 #   GEMINI_API_KEY=...
 """,
-    "config/ansible/host_vars/example_existing_docker_vm.yml": """# Example host_vars for an existing Docker VM.
+    "config/ansible/inventory/host_vars/example_existing_docker_vm.yml": """# Example host_vars for an existing Docker VM.
 # Rename this file to match your inventory host name, for example:
-# config/ansible/host_vars/frigate_vm.yml
+# config/ansible/inventory/host_vars/frigate_vm.yml
 
 vm_compose_apps:
   - dest: "/opt/frigate"
