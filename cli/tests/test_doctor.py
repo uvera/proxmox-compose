@@ -41,7 +41,8 @@ def test_doctor_ok(monkeypatch, tmp_path: Path) -> None:
     result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
     assert result.exit_code == 0, result.output
     assert "[ok] terraform" in result.output
-    assert "[ok] proxmox_auth_method=api_token" in result.output
+    assert "[ok] TF_VAR_proxmox_endpoint" in result.output
+    assert "Proxmox API token" in result.output
 
 
 def test_doctor_fails_when_missing_binary(monkeypatch, tmp_path: Path) -> None:
@@ -92,31 +93,7 @@ def test_doctor_ok_with_secret_token_command(monkeypatch, tmp_path: Path) -> Non
     assert "[ok] TF_VAR_proxmox_token_secret" in result.output
 
 
-def test_doctor_ok_password_profile(monkeypatch, tmp_path: Path) -> None:
-    ws = _workspace(tmp_path)
-    profile_file = tmp_path / "profiles.yml"
-    profile_file.write_text(
-        """profiles:
-  default:
-    proxmox_auth_method: password
-    env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_username: root@pam
-    secret_env_commands:
-      TF_VAR_proxmox_password: "python -c 'print(\\\"pw\\\")'"
-"""
-    )
-    monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
-    monkeypatch.setattr(profiles_module, "DEFAULT_PROFILE_FILE", profile_file)
-    monkeypatch.setattr(doctor_module.shutil, "which", lambda _: "/usr/bin/fake")
-
-    result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
-    assert result.exit_code == 0, result.output
-    assert "[ok] proxmox_auth_method=password" in result.output
-    assert "[ok] TF_VAR_proxmox_password" in result.output
-
-
-def test_doctor_invalid_proxmox_auth_method(monkeypatch, tmp_path: Path) -> None:
+def test_doctor_fails_with_legacy_proxmox_auth_method(monkeypatch, tmp_path: Path) -> None:
     ws = _workspace(tmp_path)
     profile_file = tmp_path / "profiles.yml"
     profile_file.write_text(
@@ -125,6 +102,9 @@ def test_doctor_invalid_proxmox_auth_method(monkeypatch, tmp_path: Path) -> None
     proxmox_auth_method: ldap
     env:
       TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
+      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+    secret_env_commands:
+      TF_VAR_proxmox_token_secret: "python -c 'print(\\\"secret\\\")'"
 """
     )
     monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
