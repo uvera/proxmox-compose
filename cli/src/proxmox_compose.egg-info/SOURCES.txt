@@ -84,6 +84,7 @@ src/proxmox_compose/scaffold_assets/infra/terraform/modules/vm/variables.tf
 src/proxmox_compose/tui/__init__.py
 src/proxmox_compose/tui/logs_explorer.py
 src/proxmox_compose/tui/logs_targets.py
+tests/test_ansible_vault_password.py
 tests/test_doctor.py
 tests/test_init.py
 tests/test_logs.py
