@@ -4,6 +4,7 @@ src/proxmox_compose/__init__.py
 src/proxmox_compose/cli.py
 src/proxmox_compose/main.py
 src/proxmox_compose/profiles.py
+src/proxmox_compose/proxmox_auth.py
 src/proxmox_compose/workspace_manifest.py
 src/proxmox_compose.egg-info/PKG-INFO
 src/proxmox_compose.egg-info/SOURCES.txt
@@ -70,6 +71,7 @@ src/proxmox_compose/scaffold_assets/docs/lxc-service-onboarding.md
 src/proxmox_compose/scaffold_assets/docs/secrets-and-ci.md
 src/proxmox_compose/scaffold_assets/docs/service-onboarding.md
 src/proxmox_compose/scaffold_assets/docs/tailscale-on-lxc.md
+src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab/checks.tf
 src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab/homelab.shared.auto.tfvars
 src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab/main.tf
 src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab/providers.tf
@@ -90,6 +92,7 @@ tests/test_init.py
 tests/test_logs.py
 tests/test_logs_targets.py
 tests/test_profiles.py
+tests/test_proxmox_auth.py
 tests/test_scaffold.py
 tests/test_scaffold_assets.py
 tests/test_vault.py

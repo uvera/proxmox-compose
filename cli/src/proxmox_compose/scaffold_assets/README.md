@@ -66,6 +66,16 @@ secret_env_commands:
     - op://Homelab/Proxmox/token_secret
 ```
 
+### Proxmox API token vs password (2FA / TOTP)
+
+Prefer **API tokens** for automation and CI: they do not require a one-time code per run.
+
+If your Proxmox account uses **2FA (TOTP)** and you authenticate with username and password to the API, set `proxmox_auth_method = "password"` in `infra/terraform/environments/homelab/terraform.tfvars` (or export `TF_VAR_proxmox_auth_method=password` from your profile). Set `proxmox_username` / `proxmox_password` there or via `TF_VAR_*` and keep secrets out of git.
+
+In `~/.config/proxmox-compose/profiles.yml`, set `proxmox_auth_method: password` so `doctor` checks for `TF_VAR_proxmox_username` and `TF_VAR_proxmox_password` instead of API token variables.
+
+For each `plan` / `apply`, pass **`--prompt-proxmox-otp`** so the CLI prompts for the current TOTP and sets `PROXMOX_VE_OTP` for the Terraform provider. You can also export `PROXMOX_VE_OTP` yourself before running Terraform.
+
 ## Recommended Workflow
 
 1. Update desired infrastructure in `infra/terraform/environments/homelab`.

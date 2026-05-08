@@ -1,12 +1,43 @@
 variable "proxmox_endpoint" { type = string }
+
+variable "proxmox_auth_method" {
+  type        = string
+  default     = "api_token"
+  description = "api_token (default) or password. Use password when the Proxmox account has 2FA; set PROXMOX_VE_OTP at Terraform run time (e.g. proxmox-compose plan --prompt-proxmox-otp)."
+  validation {
+    condition     = contains(["api_token", "password"], var.proxmox_auth_method)
+    error_message = "proxmox_auth_method must be api_token or password."
+  }
+}
+
 variable "proxmox_token_id" {
   type        = string
   sensitive   = true
-  description = "Proxmox API token ID (for example terraform@pve!proxmox-compose)."
+  default     = null
+  nullable    = true
+  description = "Proxmox API token ID when proxmox_auth_method is api_token (for example terraform@pve!proxmox-compose)."
 }
+
 variable "proxmox_token_secret" {
   type      = string
   sensitive = true
+  default   = null
+  nullable  = true
+}
+
+variable "proxmox_username" {
+  type        = string
+  default     = null
+  nullable    = true
+  description = "Proxmox API username with realm when proxmox_auth_method is password (for example root@pam)."
+}
+
+variable "proxmox_password" {
+  type        = string
+  sensitive   = true
+  default     = null
+  nullable    = true
+  description = "Proxmox API password when proxmox_auth_method is password."
 }
 variable "proxmox_insecure" {
   type    = bool

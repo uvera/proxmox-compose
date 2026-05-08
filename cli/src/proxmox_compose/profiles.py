@@ -64,3 +64,16 @@ def get_profile_ssh_key(name: str) -> Path | None:
     if not ssh_key_path:
         return None
     return Path(str(ssh_key_path)).expanduser()
+
+
+def get_proxmox_auth_method(name: str) -> str:
+    profile = get_profile(name)
+    raw = profile.get("proxmox_auth_method", "api_token")
+    if raw is None or raw == "":
+        return "api_token"
+    method = str(raw).strip()
+    if method not in ("api_token", "password"):
+        raise ValueError(
+            f"profiles.{name}.proxmox_auth_method must be 'api_token' or 'password', got {raw!r}"
+        )
+    return method
