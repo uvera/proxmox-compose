@@ -66,15 +66,42 @@ secret_env_commands:
     - op://Homelab/Proxmox/token_secret
 ```
 
-### Proxmox API token vs password (2FA / TOTP)
+### Proxmox API token authentication (token-only)
 
-Prefer **API tokens** for automation and CI: they do not require a one-time code per run.
+Authentication is **token-only**. Username/password and TOTP/OTP flows are no
+longer supported by the CLI or the Terraform scaffold.
 
-If your Proxmox account uses **2FA (TOTP)** and you authenticate with username and password to the API, set `proxmox_auth_method = "password"` in `infra/terraform/environments/homelab/terraform.tfvars` (or export `TF_VAR_proxmox_auth_method=password` from your profile). Set `proxmox_username` / `proxmox_password` there or via `TF_VAR_*` and keep secrets out of git.
+Required `TF_VAR_*` keys for the Terraform provider:
 
-In `~/.config/proxmox-compose/profiles.yml`, set `proxmox_auth_method: password` so `doctor` checks for `TF_VAR_proxmox_username` and `TF_VAR_proxmox_password` instead of API token variables.
+- `TF_VAR_proxmox_endpoint` — for example `https://proxmox.local:8006/api2/json`.
+- `TF_VAR_proxmox_token_id` — for example `terraform@pve!proxmox-compose`.
+- `TF_VAR_proxmox_token_secret` — the secret paired with that token id.
+- `TF_VAR_proxmox_insecure` (optional) — `true` to skip TLS verification on a
+  homelab CA.
 
-For each `plan` / `apply`, pass **`--prompt-proxmox-otp`** so the CLI prompts for the current TOTP and sets `PROXMOX_VE_OTP` for the Terraform provider. You can also export `PROXMOX_VE_OTP` yourself before running Terraform.
+Create a Proxmox API token (one-time):
+
+1. In the Proxmox UI: **Datacenter → Permissions → API Tokens → Add**.
+2. Pick a user (for example `terraform@pve`) and a token id
+   (for example `proxmox-compose`); copy the generated secret.
+3. Grant the user the privileges your workloads need (for example
+   `PVEVMAdmin` on `/`, plus datastore/SDN roles as required).
+4. Store the secret outside git — typically via `secret_env_commands` in
+   `~/.config/proxmox-compose/profiles.yml`.
+
+Migrating from password / OTP setups:
+
+- Remove any `proxmox_auth_method`, `proxmox_username`, or `proxmox_password`
+  values from `terraform.tfvars`, profile env, or shell exports.
+- Replace them with the `TF_VAR_proxmox_token_*` variables above.
+- Drop any `--prompt-proxmox-otp` flags from your scripts; OTP prompting and
+  the `PROXMOX_VE_OTP` plumbing have been removed.
+
+PCI passthrough note:
+
+- API tokens cannot perform some legacy PCI lookups. Prefer **Proxmox resource
+  mappings** (Datacenter → Resource Mappings → PCI) and reference mapping ids
+  in Terraform; this keeps PCI passthrough compatible with token auth.
 
 ## Recommended Workflow
 
