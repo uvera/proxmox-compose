@@ -5,7 +5,7 @@ import yaml
 
 from proxmox_compose.commands.inventory import sync_inventory
 from proxmox_compose.engines.ansible import run_ansible_playbook
-from proxmox_compose.profiles import get_profile_ssh_key, load_profile_env
+from proxmox_compose.workspace_context import prepare_run
 
 
 def _group_hosts_count(inventory: dict, group: str) -> int:
@@ -31,9 +31,9 @@ def provision_existing_command(
     ),
 ) -> None:
     """Converge already-existing hosts without creating new infra."""
-    load_profile_env(profile)
-    sync_inventory(workspace=workspace)
-    hosts_file = workspace / "config/ansible/inventory/hosts.yml"
+    ctx = prepare_run(workspace, profile)
+    sync_inventory(workspace=ctx.paths.workspace)
+    hosts_file = ctx.paths.workspace / "config/ansible/inventory/hosts.yml"
     merged_inventory = yaml.safe_load(hosts_file.read_text()) or {}
     existing_hosts_count = _group_hosts_count(merged_inventory, "existing_hosts")
     existing_docker_vms_count = _group_hosts_count(merged_inventory, "existing_docker_vms")
@@ -43,9 +43,8 @@ def provision_existing_command(
             "Add hosts to config/ansible/inventory/static.yml and retry."
         )
 
-    ssh_key_path = get_profile_ssh_key(profile)
     run_ansible_playbook(
-        workspace / "config/ansible/playbooks/provision-existing.yml",
-        workspace,
-        ssh_key_path=ssh_key_path,
+        ctx.paths.provision_existing_playbook,
+        ctx.paths.workspace,
+        ssh_key_path=ctx.ssh_key_path,
     )

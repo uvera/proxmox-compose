@@ -72,8 +72,8 @@ def get_proxmox_auth_method(name: str) -> str:
     if raw is None or raw == "":
         return "api_token"
     method = str(raw).strip()
-    if method not in ("api_token", "password"):
+    if method != "api_token":
         raise ValueError(
-            f"profiles.{name}.proxmox_auth_method must be 'api_token' or 'password', got {raw!r}"
+            f"profiles.{name}.proxmox_auth_method must be 'api_token', got {raw!r}"
         )
     return method
