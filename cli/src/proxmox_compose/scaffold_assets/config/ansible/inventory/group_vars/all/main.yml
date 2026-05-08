@@ -12,3 +12,12 @@ lxc_go_build_local: true
 
 tailscale_enable: false
 tailscale_serve: []
+
+# Opt-in: patch /etc/pve/lxc/<vmid>.conf on the Proxmox node over SSH from the Ansible controller.
+# See role lxc_host_config and docs/lxc-docker-compose.md.
+lxc_host_config_enable: false
+lxc_host_config_restart: false
+lxc_apparmor_unconfined_enable: false
+lxc_apparmor_ubuntu_mask_enable: false
+lxc_tun_enable: false
+lxc_host_config_node_addresses: {}

@@ -30,6 +30,18 @@ Scaffold support:
 
 Tailscale on Linux expects a working **`/dev/net/tun`**. Unprivileged Proxmox LXCs do **not** get TUN by default. The Terraform provider used in this scaffold does **not** expose `lxc.cgroup2.devices.allow` or `lxc.mount.entry`, so this is a **one-time change on each Proxmox node** (same idea as the AppArmor note in [lxc-docker-compose.md](lxc-docker-compose.md)).
 
+### Deployment-integrated hypervisor automation (optional)
+
+When `lxc_host_config_enable: true`, deployment playbooks run role `lxc_host_config` before `tailscale`.
+Enable `lxc_tun_enable: true` to patch these lines on the Proxmox node:
+
+- `lxc.cgroup2.devices.allow: c 10:200 rwm`
+- `lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file`
+
+Set `lxc_host_config_restart: true` if you also want the CT restarted when those lines were newly added.
+
+### Manual steps on the Proxmox host
+
 For CT **vmid**:
 
 1. `pct stop <vmid>`
@@ -42,7 +54,11 @@ For CT **vmid**:
 
 3. `pct start <vmid>`
 
-Inside the guest, `/dev/net/tun` should exist before convergence. The `tailscale` role asserts this when `ansible_virtualization_type` is `lxc`.
+Inside the guest, `/dev/net/tun` should exist before convergence. The `tailscale` role asserts this when `ansible_virtualization_type` is `lxc`, unless **`tailscale_userspace: true`**.
+
+### Userspace networking (optional)
+
+When **`tailscale_userspace: true`**, the role skips the `/dev/net/tun` assertion on LXCs, configures Debian **`/etc/default/tailscaled`** with **`FLAGS="--tun=userspace-networking"`**, and passes **`tailscale up --tun=userspace-networking --netfilter-mode=off`**. Automating userspace on non-Debian guests is not supported in this scaffold (assert fails).
 
 ## 3. Funnel policy and limits
 

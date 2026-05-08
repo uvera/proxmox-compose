@@ -1,0 +1,116 @@
+---
+- name: Resolve pre-pull settings for this app
+  ansible.builtin.set_fact:
+    _deploy_git_app_prepull_method: >-
+      {{ deploy_git_app_prepull_method | default('docker') | lower }}
+    _deploy_git_app_prepull_force: >-
+      {{ deploy_git_app_prepull_force | default(false) | bool }}
+    _deploy_git_app_prepull_images_for_app: >-
+      {{
+        (
+          (deploy_git_app_prepull_images | default([]))
+          + (deploy_git_app_item.prepull_images | default([]))
+        )
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | unique
+        | list
+      }}
+
+- name: Require skopeo for skopeo prepull method
+  ansible.builtin.command:
+    argv: [skopeo, --version]
+  changed_when: false
+  when: _deploy_git_app_prepull_method == 'skopeo'
+
+- name: Validate deploy_git_app_prepull_method value
+  ansible.builtin.assert:
+    that:
+      - _deploy_git_app_prepull_method in ['docker', 'skopeo']
+    fail_msg: >-
+      deploy_git_app_prepull_method must be 'docker' or 'skopeo'
+
+- name: Pre-pull images (docker compose pull)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -f
+      - "{{ deploy_git_app_item.compose_file_name | default('docker-compose.yaml') }}"
+      - pull
+  args:
+    chdir: "{{ deploy_git_app_item.dest }}"
+  when: _deploy_git_app_prepull_method == 'docker'
+
+- name: Discover compose images for skopeo prepull when none declared
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - -f
+      - "{{ deploy_git_app_item.compose_file_name | default('docker-compose.yaml') }}"
+      - config
+      - --images
+  args:
+    chdir: "{{ deploy_git_app_item.dest }}"
+  register: _deploy_git_app_skopeo_compose_images
+  changed_when: false
+  when:
+    - _deploy_git_app_prepull_method == 'skopeo'
+    - (_deploy_git_app_prepull_images_for_app | length) == 0
+
+- name: Merge compose-derived images into skopeo prepull list
+  ansible.builtin.set_fact:
+    _deploy_git_app_prepull_images_for_app: >-
+      {{
+        (
+          _deploy_git_app_skopeo_compose_images.stdout_lines | default([])
+          | map('trim')
+          | reject('equalto', '')
+          | unique
+          | list
+        )
+      }}
+  when:
+    - _deploy_git_app_prepull_method == 'skopeo'
+    - (_deploy_git_app_prepull_images_for_app | length) == 0
+
+- name: Check whether image is present locally
+  ansible.builtin.command:
+    argv:
+      - docker
+      - image
+      - inspect
+      - "{{ item }}"
+  register: _deploy_git_app_image_inspect
+  changed_when: false
+  failed_when: false
+  loop: "{{ _deploy_git_app_prepull_images_for_app | default([]) }}"
+  loop_control:
+    label: "{{ deploy_git_app_item.dest }} → {{ item }}"
+  when:
+    - _deploy_git_app_prepull_method == 'skopeo'
+    - (_deploy_git_app_prepull_images_for_app | default([]) | length) > 0
+
+- name: Copy missing images into docker-daemon with skopeo
+  ansible.builtin.command:
+    argv:
+      - skopeo
+      - copy
+      - "docker://{{ item.item }}"
+      - "docker-daemon:{{ item.item }}"
+  register: _deploy_git_app_skopeo_copy
+  failed_when: _deploy_git_app_skopeo_copy.rc != 0
+  changed_when: >-
+    (
+      (_deploy_git_app_skopeo_copy.stdout | default(''))
+      ~ (_deploy_git_app_skopeo_copy.stderr | default(''))
+    ) is regex('Copying blob|Writing manifest', ignorecase=False)
+  loop: "{{ _deploy_git_app_image_inspect.results | default([]) }}"
+  loop_control:
+    label: "{{ deploy_git_app_item.dest }} → {{ item.item }}"
+  when:
+    - _deploy_git_app_prepull_method == 'skopeo'
+    - (_deploy_git_app_prepull_images_for_app | default([]) | length) > 0
+    - _deploy_git_app_prepull_force | bool or (item.rc | default(1)) != 0

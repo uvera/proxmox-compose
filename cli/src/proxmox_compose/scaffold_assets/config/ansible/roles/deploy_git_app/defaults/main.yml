@@ -1,5 +1,7 @@
 deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
 deploy_git_app_enable_compose: true
+# When true, skip community.docker.docker_compose_v2 (optional extra var for ad-hoc Ansible runs).
+deploy_git_app_skip_compose: false
 deploy_git_app_ensure_groups: true
 deploy_git_app_ensure_groups_system: false
 # Shallow clone depth (>=1). Set to 0 for full history (git module ignores depth 0).
@@ -15,3 +17,11 @@ deploy_git_app_git_force: false
 deploy_git_app_git_token_env_var: GITHUB_TOKEN
 # HTTPS URL user segment when injecting token (GitHub classic/fine PAT: x-access-token).
 deploy_git_app_git_token_username: x-access-token
+
+# Optional image prepull before docker_compose_v2 (during apply / provision-existing; after compose files exist).
+# Per-app list prepull_images is unioned with deploy_git_app_prepull_images.
+deploy_git_app_prepull: false
+# docker → docker compose pull; skopeo → skopeo copy docker://… docker-daemon:… (compose-derived images when lists empty).
+deploy_git_app_prepull_method: docker
+deploy_git_app_prepull_images: []
+deploy_git_app_prepull_force: false

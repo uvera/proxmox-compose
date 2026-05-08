@@ -18,7 +18,7 @@ Recent `runc` / `containerd` updates can break Docker/Podman **inside** Proxmox 
 
 **Do not downgrade `runc`** to avoid the bug — that reintroduces security issues the updates fixed.
 
-**Workaround (on each Proxmox node, for each CT VMID):**
+**Workaround (applied on each Proxmox node, per CT VMID):**
 
 1. Stop the container: `pct stop <vmid>`
 2. Edit `/etc/pve/lxc/<vmid>.conf` on the Proxmox host and add at the end:
@@ -32,9 +32,27 @@ Recent `runc` / `containerd` updates can break Docker/Podman **inside** Proxmox 
      ```
 3. Start the container: `pct start <vmid>`
 
-Automation helpers (same idea, optional): [jq6l43d1/proxmox-lxc-docker-fix](https://github.com/jq6l43d1/proxmox-lxc-docker-fix).
+### Deploy-time automation (opt-in Ansible)
 
-This relaxes AppArmor confinement for that CT only; the CT remains **unprivileged**, which is still the main isolation boundary. Use VMs if you need stronger isolation.
+During **`proxmox-compose apply`** and **`proxmox-compose provision-existing`**, the **`lxc_host_config`** role can apply the same `/etc/pve/lxc/<vmid>.conf` lines by SSH’ing from the Ansible **controller** to the Proxmox node (the profile **`ssh_key_path`** is passed as `ansible-playbook --private-key`, same as guest runs).
+
+1. Ensure **Terraform outputs** are available under `infra/terraform/environments/homelab` so the role can discover `debian_lxcs`, `proxmox_node_addresses`, and `proxmox_ssh_username` automatically.
+2. In `host_vars` or `group_vars`, set for example:
+
+   ```yaml
+   lxc_host_config_enable: true
+   lxc_apparmor_unconfined_enable: true
+   lxc_tun_enable: true
+   lxc_host_config_restart: true
+   # Ubuntu LXC templates only (not Debian):
+   # lxc_apparmor_ubuntu_mask_enable: true
+   ```
+
+3. Re-run **`proxmox-compose apply`** or **`proxmox-compose provision-existing`**.
+
+For brownfield LXCs that are **not** in Terraform, set **`lxc_host_config_vmid`** and either
+**`lxc_host_config_node_address`** or (**`lxc_host_config_node_name`** + `lxc_host_config_node_addresses`)
+plus optional **`lxc_host_config_ssh_user`**.
 
 ## 3. Ansible: git / inline Compose on the LXC
 
@@ -47,6 +65,21 @@ Same variable shape as VM Compose (`vm_compose_apps`), but use **`lxc_compose_ap
 5. Run `proxmox-compose apply` (greenfield) or `proxmox-compose provision-existing` (brownfield).
 
 The `lxc_docker` role installs `docker.io` and `docker-compose-plugin` on Debian and includes `deploy_git_app` for stacks.
+
+### Optional: pre-pull images before `docker compose` convergence
+
+During **`proxmox-compose apply`** or **`proxmox-compose provision-existing`**, the `deploy_git_app` role can pull or copy container images **before** it runs `community.docker.docker_compose_v2` (after repos, inline compose files, and env files are on disk).
+
+In host or group vars:
+
+- **`deploy_git_app_prepull`** — set `true` to run the pre-pull phase.
+- **`deploy_git_app_prepull_method`** — `docker` runs `docker compose pull` in each app directory; `skopeo` runs `skopeo copy docker://… docker-daemon:…` (install `skopeo` on the target when using this).
+- **`deploy_git_app_prepull_images`** — optional list of image references for **skopeo** mode, unioned with each app entry’s **`prepull_images`**. If the merged list is empty in skopeo mode, images are taken from `docker compose config --images`.
+- **`deploy_git_app_prepull_force`** — when `true`, skopeo mode re-copies even if `docker image inspect` already succeeds.
+
+There is no `proxmox-compose prepull` CLI command; pre-pull is only part of the Ansible role during normal runs. To refresh repos and env files **without** `docker_compose_v2`, pass extra var **`deploy_git_app_skip_compose=true`** (for example with ad-hoc `ansible-playbook`); image pre-pull still runs when **`deploy_git_app_prepull`** is enabled.
+
+The same variables apply to **VM** Compose stacks (`vm_docker` → `deploy_git_app`), not only LXCs.
 
 ## 4. When to prefer a VM
 

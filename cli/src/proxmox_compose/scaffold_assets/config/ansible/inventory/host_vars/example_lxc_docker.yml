@@ -1,6 +1,15 @@
 # Example: Docker Compose on a Debian LXC (inventory group debian_lxcs).
 # Rename to match your inventory hostname.
 
+# Optional: during apply/provision-existing, patch Proxmox host CT config (SSH from controller to node).
+# Uses Terraform outputs automatically when available, or set per-host lxc_host_config_* overrides.
+# lxc_host_config_enable: true
+# lxc_apparmor_unconfined_enable: true   # Docker/runc in LXC (CVE-2025-52881 workaround)
+# lxc_tun_enable: true                    # if using kernel TUN Tailscale on this CT
+# lxc_host_config_restart: true
+# For Ubuntu LXC templates only:
+# lxc_apparmor_ubuntu_mask_enable: true
+
 # Optional: install Docker without defining apps yet (manual compose under /opt, etc.)
 # lxc_docker_enable: true
 
@@ -25,3 +34,9 @@ lxc_compose_apps:
 #     version: "main"
 #     compose: true
 #     git_token: "{{ github_pat }}"
+
+# Optional image pre-pull during deploy_git_app (VM and LXC compose flows):
+# deploy_git_app_prepull: true
+# deploy_git_app_prepull_method: skopeo
+# deploy_git_app_prepull_images:
+#   - docker.io/library/nginx:alpine

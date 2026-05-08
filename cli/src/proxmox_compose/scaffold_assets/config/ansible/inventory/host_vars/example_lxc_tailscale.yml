@@ -3,10 +3,16 @@
 #
 # Prerequisites:
 # - MagicDNS, HTTPS for your tailnet, and Funnel nodeAttrs policy (see docs/tailscale-on-lxc.md).
-# - For unprivileged LXC: kernel TUN on the Proxmox host (same doc).
+# - For unprivileged LXC: kernel TUN on the Proxmox host (same doc), or set tailscale_userspace: true.
+#   For deployment-integrated host-side config, set:
+#   lxc_host_config_enable: true
+#   lxc_tun_enable: true
+#   lxc_apparmor_unconfined_enable: true
+#   lxc_host_config_restart: true
 # - Add tailscale_authkey to encrypted vault.yml (see group_vars/all/vault.example.yml).
 
 tailscale_enable: true
+# tailscale_userspace: true
 tailscale_tags:
   - tag:funnel
 

@@ -1,3 +1,12 @@
+- name: Proxmox host-side CT config for Debian LXCs (optional)
+  hosts: debian_lxcs
+  gather_facts: false
+  connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  roles:
+    - role: lxc_host_config
+
 - name: Configure provisioned VMs and LXCs
   hosts: debian_vms:fedora_vms:debian_lxcs
   become: true

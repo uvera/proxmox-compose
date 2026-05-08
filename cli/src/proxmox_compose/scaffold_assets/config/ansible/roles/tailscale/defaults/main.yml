@@ -1,5 +1,7 @@
 # Opt-in Tailscale install, join, and declarative Serve/Funnel. See docs/tailscale-on-lxc.md.
 tailscale_enable: false
+# Prefer kernel TUN when possible; when true, skip /dev/net/tun assertion on LXCs and run tailscaled with userspace networking.
+tailscale_userspace: false
 tailscale_authkey: ""
 tailscale_hostname: "{{ inventory_hostname }}"
 tailscale_tags: []

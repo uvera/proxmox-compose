@@ -1,0 +1,28 @@
+---
+# Opt-in: apply Proxmox host-side /etc/pve/lxc/<vmid>.conf lines over SSH from the Ansible controller.
+# The role can discover VMID/node data from terraform output, or use inventory overrides.
+
+lxc_host_config_enable: false
+lxc_host_config_restart: false
+lxc_apparmor_unconfined_enable: false
+lxc_apparmor_ubuntu_mask_enable: false
+lxc_tun_enable: false
+
+# Optional per-host overrides.
+lxc_host_config_vmid: ""
+lxc_host_config_node_name: ""
+lxc_host_config_node_address: ""
+lxc_host_config_ssh_user: ""
+lxc_host_config_ssh_private_key_file: ""
+
+# Optional shared map override for node_name -> SSH target hostname/IP.
+lxc_host_config_node_addresses: {}
+
+# Optional terraform output directory used to auto-discover LXC and node metadata.
+lxc_host_config_tf_output_dir: "{{ playbook_dir }}/../../../infra/terraform/environments/homelab"
+lxc_host_config_ssh_strict_host_key_checking: accept-new
+
+lxc_host_config_line_apparmor_unconfined: "lxc.apparmor.profile: unconfined"
+lxc_host_config_line_apparmor_ubuntu_mask: "lxc.mount.entry: /dev/null sys/module/apparmor/parameters/enabled none bind 0 0"
+lxc_host_config_line_tun_cgroup: "lxc.cgroup2.devices.allow: c 10:200 rwm"
+lxc_host_config_line_tun_mount: "lxc.mount.entry: /dev/net/tun dev/net/tun none bind,create=file"

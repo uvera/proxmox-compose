@@ -1,0 +1,212 @@
+---
+# Runs on inventory hosts in debian_lxcs/existing_hosts with connection: local (see playbooks).
+- name: Skip role when disabled
+  ansible.builtin.meta: end_host
+  when: not (lxc_host_config_enable | default(false) | bool)
+
+- name: Build list of CT config lines to ensure on hypervisor
+  ansible.builtin.set_fact:
+    _lxc_host_config_lines: "{{ ([] if not (lxc_apparmor_unconfined_enable | bool) else [lxc_host_config_line_apparmor_unconfined]) + ([] if not (lxc_apparmor_ubuntu_mask_enable | bool) else [lxc_host_config_line_apparmor_ubuntu_mask]) + ([] if not (lxc_tun_enable | bool) else [lxc_host_config_line_tun_cgroup, lxc_host_config_line_tun_mount]) }}"
+
+- name: Require at least one host-config feature when role is enabled
+  ansible.builtin.assert:
+    that:
+      - (_lxc_host_config_lines | length) > 0
+    fail_msg: >-
+      lxc_host_config_enable is true but no feature flags are enabled. Set one or more of:
+      lxc_apparmor_unconfined_enable, lxc_apparmor_ubuntu_mask_enable, lxc_tun_enable.
+
+- name: Read terraform outputs for optional metadata lookup
+  ansible.builtin.command:
+    argv:
+      - terraform
+      - output
+      - -json
+  args:
+    chdir: "{{ lxc_host_config_tf_output_dir }}"
+  register: _lxc_host_config_tf_output_raw
+  changed_when: false
+  failed_when: false
+  delegate_to: localhost
+  run_once: true
+
+- name: Parse terraform output maps for host metadata
+  ansible.builtin.set_fact:
+    lxc_host_config_tf_outputs: >-
+      {{
+        (_lxc_host_config_tf_output_raw.stdout | from_json)
+        if (
+          (_lxc_host_config_tf_output_raw.rc | default(1)) == 0
+          and (_lxc_host_config_tf_output_raw.stdout | default('') | trim | length) > 0
+        )
+        else {}
+      }}
+  delegate_to: localhost
+  delegate_facts: true
+  run_once: true
+
+- name: Extract terraform host metadata maps
+  ansible.builtin.set_fact:
+    lxc_host_config_tf_debian_lxcs: "{{ hostvars['localhost'].lxc_host_config_tf_outputs.debian_lxcs.value | default({}) }}"
+    lxc_host_config_tf_node_addresses: "{{ hostvars['localhost'].lxc_host_config_tf_outputs.proxmox_node_addresses.value | default({}) }}"
+    lxc_host_config_tf_ssh_user: "{{ hostvars['localhost'].lxc_host_config_tf_outputs.proxmox_ssh_username.value | default('root') }}"
+  delegate_to: localhost
+  delegate_facts: true
+  run_once: true
+
+- name: Resolve host-specific metadata for Proxmox SSH patching
+  ansible.builtin.set_fact:
+    _lxc_host_config_tf_meta: "{{ (hostvars['localhost'].lxc_host_config_tf_debian_lxcs | default({})).get(inventory_hostname, {}) }}"
+    _lxc_host_config_vmid: >-
+      {{
+        [
+          lxc_host_config_vmid | default(''),
+          proxmox_lxc_vmid | default(''),
+          _lxc_host_config_tf_meta.vmid | default('')
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | first
+        | default('')
+      }}
+    _lxc_host_config_node_name: >-
+      {{
+        [
+          lxc_host_config_node_name | default(''),
+          proxmox_node_name | default(''),
+          _lxc_host_config_tf_meta.node_name | default('')
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | first
+        | default('')
+      }}
+    _lxc_host_config_node_address_map: >-
+      {{
+        (hostvars['localhost'].lxc_host_config_tf_node_addresses | default({}))
+        | combine(lxc_host_config_node_addresses | default({}), recursive=True)
+      }}
+    _lxc_host_config_ssh_user: >-
+      {{
+        [
+          lxc_host_config_ssh_user | default(''),
+          hostvars['localhost'].lxc_host_config_tf_ssh_user | default(''),
+          'root'
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | first
+      }}
+    _lxc_host_config_ssh_private_key: >-
+      {{
+        [
+          lxc_host_config_ssh_private_key_file | default(''),
+          ansible_ssh_private_key_file | default('')
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | first
+        | default('')
+      }}
+
+- name: Resolve Proxmox node SSH target
+  ansible.builtin.set_fact:
+    _lxc_host_config_node_address: >-
+      {{
+        [
+          lxc_host_config_node_address | default(''),
+          _lxc_host_config_node_address_map.get(_lxc_host_config_node_name, ''),
+          _lxc_host_config_node_name
+        ]
+        | map('string')
+        | map('trim')
+        | reject('equalto', '')
+        | first
+        | default('')
+      }}
+
+- name: Validate required metadata for host config patching
+  ansible.builtin.assert:
+    that:
+      - (_lxc_host_config_vmid | string | length) > 0
+      - (_lxc_host_config_vmid | int) > 0
+      - (_lxc_host_config_node_address | string | length) > 0
+      - (_lxc_host_config_ssh_user | string | length) > 0
+    fail_msg: >-
+      Missing metadata for {{ inventory_hostname }}. Set lxc_host_config_vmid and node target vars
+      (lxc_host_config_node_address or lxc_host_config_node_name + lxc_host_config_node_addresses),
+      or ensure terraform outputs are available at {{ lxc_host_config_tf_output_dir }}.
+
+- name: Ensure CT config line present on Proxmox node
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+    _ensure_line_program: |
+      from pathlib import Path
+      import sys
+
+      conf = Path(sys.argv[1])
+      line = sys.argv[2]
+      if not conf.exists():
+          raise SystemExit(f"missing {conf} (CT may not exist on this node)")
+      content = conf.read_text(encoding="utf-8")
+      existing_lines = content.splitlines()
+      if line not in existing_lines:
+          with conf.open("a", encoding="utf-8") as handle:
+              if content and not content.endswith("\n"):
+                  handle.write("\n")
+              handle.write(f"{line}\n")
+          print("changed")
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['python3', '-c', _ensure_line_program, '/etc/pve/lxc/' ~ (_lxc_host_config_vmid | string) ~ '.conf', item] }}"
+  register: _lxc_host_config_append
+  changed_when: "'changed' in (_lxc_host_config_append.stdout | default(''))"
+  loop: "{{ _lxc_host_config_lines }}"
+  loop_control:
+    label: "{{ item }}"
+
+- name: Restart CT on hypervisor when its config changed and restart is allowed
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+    _restart_program: |
+      import subprocess
+      import sys
+
+      vmid = sys.argv[1]
+      status = subprocess.run(["pct", "status", vmid], check=False, capture_output=True, text=True)
+      if status.returncode != 0:
+          raise SystemExit(status.stderr.strip() or status.stdout.strip() or f"pct status failed for {vmid}")
+      if "running" in status.stdout.lower():
+          subprocess.run(["pct", "stop", vmid], check=True)
+          subprocess.run(["pct", "start", vmid], check=True)
+          print("changed")
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['python3', '-c', _restart_program, (_lxc_host_config_vmid | string)] }}"
+  when:
+    - lxc_host_config_restart | default(false) | bool
+    - (_lxc_host_config_append.results | default([]) | selectattr('changed', 'equalto', true) | list | length) > 0
+  changed_when: "'changed' in (_lxc_host_config_restart.stdout | default(''))"
+  register: _lxc_host_config_restart

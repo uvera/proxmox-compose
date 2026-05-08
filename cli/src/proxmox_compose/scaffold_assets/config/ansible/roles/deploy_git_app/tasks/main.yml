@@ -184,6 +184,15 @@
     label: "{{ item.1.dest }}"
   no_log: "{{ item.1.secret | default(false) }}"
 
+- name: Pre-pull images for app stacks
+  ansible.builtin.include_tasks: prepull.yml
+  loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+  vars:
+    deploy_git_app_item: "{{ item }}"
+  when: deploy_git_app_prepull | default(false) | bool
+
 - name: Deploy compose stacks
   community.docker.docker_compose_v2:
     project_src: "{{ item.dest }}"
@@ -191,6 +200,7 @@
     state: present
   when:
     - deploy_git_app_enable_compose | bool
+    - not (deploy_git_app_skip_compose | default(false) | bool)
     - item.compose | default(true)
   loop: "{{ deploy_git_apps | default([]) }}"
   loop_control:

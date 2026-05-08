@@ -24,7 +24,9 @@
         label: "{{ item.port | default('?') }}"
 
     - name: Require TUN device for Tailscale inside LXC
-      when: ansible_virtualization_type | default('') in ['lxc', 'container', 'openvz']
+      when:
+        - ansible_virtualization_type | default('') in ['lxc', 'container', 'openvz']
+        - not (tailscale_userspace | default(false) | bool)
       block:
         - name: Stat /dev/net/tun
           ansible.builtin.stat:
@@ -79,6 +81,29 @@
       when: ansible_facts["os_family"] == "Debian"
       notify: Restart tailscaled
 
+    - name: Configure tailscaled userspace networking (Debian)
+      ansible.builtin.lineinfile:
+        path: /etc/default/tailscaled
+        regexp: '^FLAGS='
+        line: 'FLAGS="--tun=userspace-networking"'
+        create: true
+        mode: "0644"
+      when:
+        - tailscale_userspace | default(false) | bool
+        - ansible_facts["os_family"] == "Debian"
+      notify: Restart tailscaled
+
+    - name: Require Debian automation when Tailscale userspace mode is enabled
+      ansible.builtin.assert:
+        that:
+          - ansible_facts["os_family"] == "Debian"
+        fail_msg: >-
+          tailscale_userspace is only automated for Debian-family guests in this scaffold.
+          Configure tailscaled FLAGS manually elsewhere or disable tailscale_userspace.
+      when:
+        - tailscale_userspace | default(false) | bool
+        - ansible_facts["os_family"] != "Debian"
+
     - name: Add Tailscale yum repository (Fedora)
       ansible.builtin.get_url:
         url: https://pkgs.tailscale.com/stable/fedora/tailscale.repo
@@ -117,7 +142,7 @@
       ansible.builtin.set_fact:
         tailscale_up_argv: "{{ _tailscale_up_argv }}"
       vars:
-        _tailscale_up_argv: "{{ ['tailscale', 'up', '--yes', '--authkey=' ~ tailscale_authkey] + (['--hostname=' ~ (tailscale_hostname | string)] if (tailscale_hostname | default('') | string | length) > 0 else []) + (['--advertise-tags=' ~ (tailscale_tags | join(','))] if (tailscale_tags | default([]) | length) > 0 else []) + (['--advertise-routes=' ~ (tailscale_advertise_routes | join(','))] if (tailscale_advertise_routes | default([]) | length) > 0 else []) + (['--accept-routes'] if tailscale_accept_routes | default(false) | bool else []) + (['--accept-dns=false'] if not (tailscale_accept_dns | default(true) | bool) else []) + (['--ssh'] if tailscale_ssh | default(false) | bool else []) + (['--ephemeral'] if tailscale_ephemeral | default(false) | bool else []) + (tailscale_extra_up_args | default([])) }}"
+        _tailscale_up_argv: "{{ ['tailscale', 'up', '--yes', '--authkey=' ~ tailscale_authkey] + (['--tun=userspace-networking', '--netfilter-mode=off'] if (tailscale_userspace | default(false) | bool) else []) + (['--hostname=' ~ (tailscale_hostname | string)] if (tailscale_hostname | default('') | string | length) > 0 else []) + (['--advertise-tags=' ~ (tailscale_tags | join(','))] if (tailscale_tags | default([]) | length) > 0 else []) + (['--advertise-routes=' ~ (tailscale_advertise_routes | join(','))] if (tailscale_advertise_routes | default([]) | length) > 0 else []) + (['--accept-routes'] if tailscale_accept_routes | default(false) | bool else []) + (['--accept-dns=false'] if not (tailscale_accept_dns | default(true) | bool) else []) + (['--ssh'] if tailscale_ssh | default(false) | bool else []) + (['--ephemeral'] if tailscale_ephemeral | default(false) | bool else []) + (tailscale_extra_up_args | default([])) }}"
 
     - name: Join or refresh Tailscale session
       ansible.builtin.command:

@@ -33,3 +33,9 @@ vm_compose_apps:
 # group_vars only, not role defaults) > environment variable named by
 # deploy_git_app_git_token_env_var (default GITHUB_TOKEN).
 # For SSH URLs, use key_file (deploy key on the target host) instead of git_token.
+#
+# Optional image pre-pull before docker_compose_v2 convergence:
+# deploy_git_app_prepull: true
+# deploy_git_app_prepull_method: skopeo
+# deploy_git_app_prepull_images:
+#   - ghcr.io/blakeblackshear/frigate:0.17.1
