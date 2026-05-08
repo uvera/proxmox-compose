@@ -10,6 +10,7 @@
 - name: Converge existing infrastructure
   hosts: existing_hosts
   become: true
+  ignore_unreachable: true
   roles:
     - role: common
     - role: tailscale
@@ -18,5 +19,6 @@
 - name: Converge Docker workloads on existing VMs
   hosts: existing_docker_vms
   become: true
+  ignore_unreachable: true
   roles:
     - role: vm_docker
