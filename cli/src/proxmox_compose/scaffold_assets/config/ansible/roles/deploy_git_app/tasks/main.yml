@@ -184,6 +184,14 @@
     label: "{{ item.1.dest }}"
   no_log: "{{ item.1.secret | default(false) }}"
 
+- name: Ensure skopeo is installed for skopeo prepull
+  ansible.builtin.package:
+    name: "{{ deploy_git_app_skopeo_package_name }}"
+    state: present
+  when:
+    - deploy_git_app_prepull | default(false) | bool
+    - (deploy_git_app_prepull_method | default('docker') | lower) == 'skopeo'
+
 - name: Pre-pull images for app stacks
   ansible.builtin.include_tasks: prepull.yml
   loop: "{{ deploy_git_apps | default([]) }}"

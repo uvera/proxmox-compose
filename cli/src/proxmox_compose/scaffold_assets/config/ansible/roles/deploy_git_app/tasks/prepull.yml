@@ -18,12 +18,6 @@
         | list
       }}
 
-- name: Require skopeo for skopeo prepull method
-  ansible.builtin.command:
-    argv: [skopeo, --version]
-  changed_when: false
-  when: _deploy_git_app_prepull_method == 'skopeo'
-
 - name: Validate deploy_git_app_prepull_method value
   ansible.builtin.assert:
     that:

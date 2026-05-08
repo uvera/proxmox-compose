@@ -25,3 +25,5 @@ deploy_git_app_prepull: false
 deploy_git_app_prepull_method: docker
 deploy_git_app_prepull_images: []
 deploy_git_app_prepull_force: false
+# Package name for skopeo prepull (Debian/Fedora via ansible.builtin.package).
+deploy_git_app_skopeo_package_name: skopeo
