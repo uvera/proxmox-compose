@@ -13,19 +13,94 @@
       changed_when: false
       failed_when: false
 
-    - name: Install Docker engine and Compose plugin on Debian
+    - name: Check whether Docker Compose v2 CLI is available
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - version
+      register: lxc_docker_compose_v2_check
+      changed_when: false
+      failed_when: false
+
+    - name: Ensure apt prerequisites for Docker repository
       ansible.builtin.apt:
         name:
-          - docker.io
+          - ca-certificates
+          - curl
+          - gnupg
+        state: present
+      when:
+        - lxc_docker_cli_check.rc != 0 or lxc_docker_compose_v2_check.rc != 0
+
+    - name: Ensure apt keyrings directory exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+      when:
+        - lxc_docker_cli_check.rc != 0 or lxc_docker_compose_v2_check.rc != 0
+
+    - name: Install Docker apt key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/debian/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+      when:
+        - lxc_docker_cli_check.rc != 0 or lxc_docker_compose_v2_check.rc != 0
+
+    - name: Resolve Docker repository architecture
+      ansible.builtin.set_fact:
+        _lxc_docker_repo_arch: >-
+          {{
+            {
+              'x86_64': 'amd64',
+              'amd64': 'amd64',
+              'aarch64': 'arm64',
+              'arm64': 'arm64'
+            }.get(ansible_architecture, ansible_architecture)
+          }}
+      when:
+        - lxc_docker_cli_check.rc != 0 or lxc_docker_compose_v2_check.rc != 0
+
+    - name: Add Docker apt repository
+      ansible.builtin.apt_repository:
+        repo: >-
+          deb [arch={{ _lxc_docker_repo_arch }} signed-by=/etc/apt/keyrings/docker.asc]
+          https://download.docker.com/linux/debian {{ ansible_distribution_release }} stable
+        filename: docker
+        state: present
+      when:
+        - lxc_docker_cli_check.rc != 0 or lxc_docker_compose_v2_check.rc != 0
+
+    - name: Install Docker engine and Compose plugin (v2)
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
           - docker-compose-plugin
         state: present
-      when: lxc_docker_cli_check.rc != 0
+        update_cache: true
+      when:
+        - lxc_docker_cli_check.rc != 0 or lxc_docker_compose_v2_check.rc != 0
 
     - name: Ensure docker service enabled
       ansible.builtin.service:
         name: docker
         enabled: true
         state: started
+
+    - name: Validate Docker Compose v2 availability
+      ansible.builtin.command:
+        argv:
+          - docker
+          - compose
+          - version
+      register: lxc_docker_compose_v2_verify
+      changed_when: false
+      failed_when: lxc_docker_compose_v2_verify.rc != 0
 
     - name: Deploy compose applications on LXC
       ansible.builtin.include_role:

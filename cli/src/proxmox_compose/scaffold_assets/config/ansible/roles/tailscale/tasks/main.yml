@@ -57,9 +57,13 @@
       when: ansible_facts["os_family"] == "Debian"
 
     - name: Install Tailscale apt keyring (Debian)
-      ansible.builtin.shell: |
-        set -euo pipefail
-        gpg --dearmor < "/tmp/tailscale-{{ ansible_distribution_release }}.gpg" > /usr/share/keyrings/tailscale-archive-keyring.gpg
+      ansible.builtin.command:
+        argv:
+          - gpg
+          - --dearmor
+          - --output
+          - /usr/share/keyrings/tailscale-archive-keyring.gpg
+          - "/tmp/tailscale-{{ ansible_distribution_release }}.gpg"
       args:
         creates: /usr/share/keyrings/tailscale-archive-keyring.gpg
       when: ansible_facts["os_family"] == "Debian"
@@ -138,20 +142,40 @@
       ansible.builtin.set_fact:
         tailscale_needs_up: "{{ (tailscale_status_json.rc | default(1)) != 0 or (tailscale_status.BackendState | default('')) != 'Running' or (((tailscale_hostname | default('') | string | length) > 0) and (((tailscale_status.Self | default({})).HostName | default('')) != (tailscale_hostname | string))) }}"
 
+    - name: Decide whether tailscale up requires auth key
+      ansible.builtin.set_fact:
+        tailscale_auth_required: "{{ (tailscale_status_json.rc | default(1)) != 0 or (tailscale_status.BackendState | default('')) in ['NeedsLogin', 'NoState'] }}"
+
     - name: Build tailscale up argv
       ansible.builtin.set_fact:
         tailscale_up_argv: "{{ _tailscale_up_argv }}"
       vars:
-        _tailscale_up_argv: "{{ ['tailscale', 'up', '--yes', '--authkey=' ~ tailscale_authkey] + (['--tun=userspace-networking', '--netfilter-mode=off'] if (tailscale_userspace | default(false) | bool) else []) + (['--hostname=' ~ (tailscale_hostname | string)] if (tailscale_hostname | default('') | string | length) > 0 else []) + (['--advertise-tags=' ~ (tailscale_tags | join(','))] if (tailscale_tags | default([]) | length) > 0 else []) + (['--advertise-routes=' ~ (tailscale_advertise_routes | join(','))] if (tailscale_advertise_routes | default([]) | length) > 0 else []) + (['--accept-routes'] if tailscale_accept_routes | default(false) | bool else []) + (['--accept-dns=false'] if not (tailscale_accept_dns | default(true) | bool) else []) + (['--ssh'] if tailscale_ssh | default(false) | bool else []) + (['--ephemeral'] if tailscale_ephemeral | default(false) | bool else []) + (tailscale_extra_up_args | default([])) }}"
+        _tailscale_up_argv: "{{ ['tailscale', 'up', '--reset'] + (['--auth-key=file:/run/tailscale-authkey'] if (tailscale_auth_required | default(false) | bool) else []) + (['--tun=userspace-networking', '--netfilter-mode=off'] if (tailscale_userspace | default(false) | bool) else []) + (['--hostname=' ~ (tailscale_hostname | string)] if (tailscale_hostname | default('') | string | length) > 0 else []) + (['--advertise-tags=' ~ (tailscale_tags | join(','))] if (tailscale_tags | default([]) | length) > 0 else []) + (['--advertise-routes=' ~ (tailscale_advertise_routes | join(','))] if (tailscale_advertise_routes | default([]) | length) > 0 else []) + (['--accept-routes'] if tailscale_accept_routes | default(false) | bool else []) + (['--accept-dns=false'] if not (tailscale_accept_dns | default(true) | bool) else []) + (['--ssh'] if tailscale_ssh | default(false) | bool else []) + (['--ephemeral'] if tailscale_ephemeral | default(false) | bool else []) + (tailscale_extra_up_args | default([])) }}"
 
     - name: Join or refresh Tailscale session
-      ansible.builtin.command:
-        argv: "{{ tailscale_up_argv }}"
       when: tailscale_needs_up | bool
-      no_log: true
-      register: tailscale_up_cmd
-      changed_when: true
-      failed_when: tailscale_up_cmd.rc != 0
+      block:
+        - name: Write Tailscale auth key file for CLI
+          ansible.builtin.copy:
+            dest: /run/tailscale-authkey
+            owner: root
+            group: root
+            mode: "0600"
+            content: "{{ tailscale_authkey }}"
+          no_log: true
+          when: tailscale_auth_required | default(false) | bool
+
+        - name: Run tailscale up
+          ansible.builtin.command:
+            argv: "{{ tailscale_up_argv }}"
+          register: tailscale_up_cmd
+          changed_when: true
+          failed_when: tailscale_up_cmd.rc != 0
+      always:
+        - name: Remove Tailscale auth key file
+          ansible.builtin.file:
+            path: /run/tailscale-authkey
+            state: absent
 
     - name: Deploy Tailscale Serve/Funnel reconcile helper
       ansible.builtin.copy:

@@ -27,25 +27,14 @@
 
 - name: Pre-pull images (docker compose pull)
   ansible.builtin.command:
-    argv:
-      - docker
-      - compose
-      - -f
-      - "{{ deploy_git_app_item.compose_file_name | default('docker-compose.yaml') }}"
-      - pull
+    argv: "{{ _deploy_git_app_compose_argv + ['-f', (deploy_git_app_item.compose_file_name | default('docker-compose.yaml')), 'pull'] }}"
   args:
     chdir: "{{ deploy_git_app_item.dest }}"
   when: _deploy_git_app_prepull_method == 'docker'
 
 - name: Discover compose images for skopeo prepull when none declared
   ansible.builtin.command:
-    argv:
-      - docker
-      - compose
-      - -f
-      - "{{ deploy_git_app_item.compose_file_name | default('docker-compose.yaml') }}"
-      - config
-      - --images
+    argv: "{{ _deploy_git_app_compose_argv + ['-f', (deploy_git_app_item.compose_file_name | default('docker-compose.yaml')), 'config', '--images'] }}"
   args:
     chdir: "{{ deploy_git_app_item.dest }}"
   register: _deploy_git_app_skopeo_compose_images
@@ -82,7 +71,7 @@
   failed_when: false
   loop: "{{ _deploy_git_app_prepull_images_for_app | default([]) }}"
   loop_control:
-    label: "{{ deploy_git_app_item.dest }} → {{ item }}"
+    label: "{{ (deploy_git_app_item.dest | default(deploy_git_app_item | string)) ~ ' -> ' ~ (item | string) }}"
   when:
     - _deploy_git_app_prepull_method == 'skopeo'
     - (_deploy_git_app_prepull_images_for_app | default([]) | length) > 0
@@ -103,7 +92,7 @@
     ) is regex('Copying blob|Writing manifest', ignorecase=False)
   loop: "{{ _deploy_git_app_image_inspect.results | default([]) }}"
   loop_control:
-    label: "{{ deploy_git_app_item.dest }} → {{ item.item }}"
+    label: "{{ (deploy_git_app_item.dest | default(deploy_git_app_item | string)) ~ ' -> ' ~ (item.item | default(item | string)) }}"
   when:
     - _deploy_git_app_prepull_method == 'skopeo'
     - (_deploy_git_app_prepull_images_for_app | default([]) | length) > 0

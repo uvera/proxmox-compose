@@ -159,19 +159,25 @@
       import sys
 
       conf = Path(sys.argv[1])
-      line = sys.argv[2]
+      line = {{ item | to_json }}
+      key = line.split(":", 1)[0].strip()
       if not conf.exists():
           raise SystemExit(f"missing {conf} (CT may not exist on this node)")
       content = conf.read_text(encoding="utf-8")
       existing_lines = content.splitlines()
-      if line not in existing_lines:
-          with conf.open("a", encoding="utf-8") as handle:
-              if content and not content.endswith("\n"):
-                  handle.write("\n")
-              handle.write(f"{line}\n")
+      normalized_lines = [
+          existing
+          for existing in existing_lines
+          if existing.strip() not in {f"{key}:", f"{key}: "}
+      ]
+      if line not in normalized_lines:
+          normalized_lines.append(line)
+      if normalized_lines != existing_lines:
+          conf.write_text("\n".join(normalized_lines) + "\n", encoding="utf-8")
           print("changed")
   ansible.builtin.command:
-    argv: "{{ _ssh_argv_head + ['python3', '-c', _ensure_line_program, '/etc/pve/lxc/' ~ (_lxc_host_config_vmid | string) ~ '.conf', item] }}"
+    argv: "{{ _ssh_argv_head + ['python3', '-', '/etc/pve/lxc/' ~ (_lxc_host_config_vmid | string) ~ '.conf'] }}"
+    stdin: "{{ _ensure_line_program }}"
   register: _lxc_host_config_append
   changed_when: "'changed' in (_lxc_host_config_append.stdout | default(''))"
   loop: "{{ _lxc_host_config_lines }}"
@@ -204,7 +210,8 @@
           subprocess.run(["pct", "start", vmid], check=True)
           print("changed")
   ansible.builtin.command:
-    argv: "{{ _ssh_argv_head + ['python3', '-c', _restart_program, (_lxc_host_config_vmid | string)] }}"
+    argv: "{{ _ssh_argv_head + ['python3', '-', (_lxc_host_config_vmid | string)] }}"
+    stdin: "{{ _restart_program }}"
   when:
     - lxc_host_config_restart | default(false) | bool
     - (_lxc_host_config_append.results | default([]) | selectattr('changed', 'equalto', true) | list | length) > 0

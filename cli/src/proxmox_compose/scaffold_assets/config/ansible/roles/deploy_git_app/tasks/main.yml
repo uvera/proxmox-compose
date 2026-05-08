@@ -184,6 +184,49 @@
     label: "{{ item.1.dest }}"
   no_log: "{{ item.1.secret | default(false) }}"
 
+- name: Check Docker Compose v2 CLI availability
+  ansible.builtin.command:
+    argv:
+      - docker
+      - compose
+      - version
+  register: _deploy_git_app_compose_v2_check
+  changed_when: false
+  failed_when: false
+  when:
+    - deploy_git_app_enable_compose | bool
+    - not (deploy_git_app_skip_compose | default(false) | bool)
+
+- name: Check Docker Compose v1 CLI availability
+  ansible.builtin.command:
+    argv:
+      - docker-compose
+      - version
+  register: _deploy_git_app_compose_v1_check
+  changed_when: false
+  failed_when: false
+  when:
+    - deploy_git_app_enable_compose | bool
+    - not (deploy_git_app_skip_compose | default(false) | bool)
+
+- name: Resolve Docker Compose CLI mode
+  ansible.builtin.set_fact:
+    _deploy_git_app_compose_mode: "{{ 'v2' if (_deploy_git_app_compose_v2_check.rc | default(1)) == 0 else ('v1' if (_deploy_git_app_compose_v1_check.rc | default(1)) == 0 else '') }}"
+    _deploy_git_app_compose_argv: "{{ ['docker', 'compose'] if (_deploy_git_app_compose_v2_check.rc | default(1)) == 0 else (['docker-compose'] if (_deploy_git_app_compose_v1_check.rc | default(1)) == 0 else []) }}"
+  when:
+    - deploy_git_app_enable_compose | bool
+    - not (deploy_git_app_skip_compose | default(false) | bool)
+
+- name: Require Docker Compose CLI when compose deployment is enabled
+  ansible.builtin.assert:
+    that:
+      - (_deploy_git_app_compose_mode | default('') | length) > 0
+    fail_msg: >-
+      Docker Compose CLI not found. Install docker compose plugin (v2) or docker-compose (v1).
+  when:
+    - deploy_git_app_enable_compose | bool
+    - not (deploy_git_app_skip_compose | default(false) | bool)
+
 - name: Ensure skopeo is installed for skopeo prepull
   ansible.builtin.package:
     name: "{{ deploy_git_app_skopeo_package_name }}"
@@ -201,7 +244,7 @@
     deploy_git_app_item: "{{ item }}"
   when: deploy_git_app_prepull | default(false) | bool
 
-- name: Deploy compose stacks
+- name: Deploy compose stacks with Docker Compose v2
   community.docker.docker_compose_v2:
     project_src: "{{ item.dest }}"
     files: "{{ [item.compose_file_name] if item.compose_file_name is defined else omit }}"
@@ -209,6 +252,29 @@
   when:
     - deploy_git_app_enable_compose | bool
     - not (deploy_git_app_skip_compose | default(false) | bool)
+    - (_deploy_git_app_compose_mode | default('')) == 'v2'
+    - item.compose | default(true)
+  loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+
+- name: Deploy compose stacks with Docker Compose v1
+  ansible.builtin.command:
+    argv: "{{ _deploy_git_app_compose_argv + ['-f', (item.compose_file_name | default('docker-compose.yaml')), 'up', '-d'] }}"
+  args:
+    chdir: "{{ item.dest }}"
+  register: _deploy_git_app_compose_v1_up
+  changed_when: >-
+    (
+      (_deploy_git_app_compose_v1_up.stdout | default(''))
+      ~
+      (_deploy_git_app_compose_v1_up.stderr | default(''))
+    ) is regex('Creating|Recreating|Starting|Pulling|Building|Downloading', ignorecase=False)
+  failed_when: (_deploy_git_app_compose_v1_up.rc | default(1)) != 0
+  when:
+    - deploy_git_app_enable_compose | bool
+    - not (deploy_git_app_skip_compose | default(false) | bool)
+    - (_deploy_git_app_compose_mode | default('')) == 'v1'
     - item.compose | default(true)
   loop: "{{ deploy_git_apps | default([]) }}"
   loop_control:
