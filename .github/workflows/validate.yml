@@ -21,6 +21,10 @@ jobs:
       - name: Terraform fmt
         run: terraform fmt -check -recursive cli/src/proxmox_compose/scaffold_assets/infra/terraform
       - name: Terraform init and validate
+        env:
+          TF_VAR_proxmox_endpoint: https://example.invalid/api2/json
+          TF_VAR_proxmox_token_id: ci@pve!ci
+          TF_VAR_proxmox_token_secret: ci-placeholder-secret
         run: |
           cd cli/src/proxmox_compose/scaffold_assets/infra/terraform/environments/homelab
           terraform init -backend=false
