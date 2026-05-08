@@ -73,7 +73,7 @@ During **`proxmox-compose apply`** or **`proxmox-compose provision-existing`**, 
 In host or group vars:
 
 - **`deploy_git_app_prepull`** — set `true` to run the pre-pull phase.
-- **`deploy_git_app_prepull_method`** — `docker` runs `docker compose pull` in each app directory; `skopeo` runs `skopeo copy docker://… docker-daemon:…` (install `skopeo` on the target when using this).
+- **`deploy_git_app_prepull_method`** — `docker` runs `docker compose pull` in each app directory; `skopeo` runs `skopeo copy docker://… docker-daemon:…`. With **`skopeo`**, the role installs the **`skopeo`** package on Debian/Fedora targets (`ansible.builtin.package`); override the package name with **`deploy_git_app_skopeo_package_name`** if your distro differs.
 - **`deploy_git_app_prepull_images`** — optional list of image references for **skopeo** mode, unioned with each app entry’s **`prepull_images`**. If the merged list is empty in skopeo mode, images are taken from `docker compose config --images`.
 - **`deploy_git_app_prepull_force`** — when `true`, skopeo mode re-copies even if `docker image inspect` already succeeds.
 
