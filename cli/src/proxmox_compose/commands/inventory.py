@@ -1,10 +1,15 @@
 from pathlib import Path
 from typing import Any
 import json
-import subprocess
 
 import typer
 import yaml
+
+from proxmox_compose.engines.runner import (
+    CommandFailedError,
+    CommandNotFoundError,
+    run_command,
+)
 
 
 inventory_app = typer.Typer(help="Inventory utilities.")
@@ -21,16 +26,10 @@ def _terraform_outputs(workspace: Path) -> dict[str, Any]:
     if not tf_path.exists():
         return {}
     try:
-        result = subprocess.run(
-            ["terraform", "output", "-json"],
-            cwd=tf_path,
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError:
+        result = run_command(["terraform", "output", "-json"], cwd=tf_path, capture=True)
+    except (CommandNotFoundError, CommandFailedError):
         return {}
-    if result.returncode != 0 or not result.stdout.strip():
+    if not result.stdout.strip():
         return {}
     return json.loads(result.stdout)
 
