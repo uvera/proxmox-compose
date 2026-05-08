@@ -109,6 +109,18 @@ variable "debian_lxcs" {
     lxc_features_fuse = optional(bool, false)
     # Rare; enable only if a workload requires keyctl inside the CT.
     lxc_features_keyctl = optional(bool, false)
+    # Host bind mounts into the CT (mpN); keep in sync with workload compose binds.
+    mount_points = optional(list(object({
+      path          = string
+      volume        = string
+      acl           = optional(bool)
+      backup        = optional(bool)
+      read_only     = optional(bool)
+      replicate     = optional(bool)
+      shared        = optional(bool)
+      quota         = optional(bool)
+      mount_options = optional(list(string))
+    })), [])
   }))
   default = []
   validation {

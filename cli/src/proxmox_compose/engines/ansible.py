@@ -3,7 +3,12 @@ from pathlib import Path
 from proxmox_compose.engines.runner import run_command
 
 
-def _common_cmd(playbook: Path, workspace: Path, ssh_key_path: Path | None = None) -> list[str]:
+def _common_cmd(
+    playbook: Path,
+    workspace: Path,
+    ssh_key_path: Path | None = None,
+    limit: str | None = None,
+) -> list[str]:
     workspace = workspace.resolve()
     playbook = playbook.resolve()
     command = [
@@ -14,6 +19,8 @@ def _common_cmd(playbook: Path, workspace: Path, ssh_key_path: Path | None = Non
     ]
     if ssh_key_path:
         command.extend(["--private-key", str(ssh_key_path)])
+    if limit:
+        command.extend(["--limit", limit])
     return command
 
 
@@ -61,8 +68,15 @@ printf '%s' "${ANSIBLE_VAULT_PASSWORD:?missing ANSIBLE_VAULT_PASSWORD}"
     return new_command, cleanup
 
 
-def run_ansible_check(playbook: Path, workspace: Path, ssh_key_path: Path | None = None) -> None:
-    cmd, cleanup = _with_vault_password_file(_common_cmd(playbook, workspace, ssh_key_path) + ["--check"])
+def run_ansible_check(
+    playbook: Path,
+    workspace: Path,
+    ssh_key_path: Path | None = None,
+    limit: str | None = None,
+) -> None:
+    cmd, cleanup = _with_vault_password_file(
+        _common_cmd(playbook, workspace, ssh_key_path, limit=limit) + ["--check"]
+    )
     try:
         run_command(
             cmd,
@@ -72,8 +86,15 @@ def run_ansible_check(playbook: Path, workspace: Path, ssh_key_path: Path | None
         cleanup()
 
 
-def run_ansible_playbook(playbook: Path, workspace: Path, ssh_key_path: Path | None = None) -> None:
-    cmd, cleanup = _with_vault_password_file(_common_cmd(playbook, workspace, ssh_key_path))
+def run_ansible_playbook(
+    playbook: Path,
+    workspace: Path,
+    ssh_key_path: Path | None = None,
+    limit: str | None = None,
+) -> None:
+    cmd, cleanup = _with_vault_password_file(
+        _common_cmd(playbook, workspace, ssh_key_path, limit=limit)
+    )
     try:
         run_command(
             cmd,

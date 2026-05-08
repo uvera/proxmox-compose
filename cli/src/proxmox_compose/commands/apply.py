@@ -21,6 +21,12 @@ def apply_command(
         "-p",
         help="Profile from ~/.config/proxmox-compose/profiles.yml",
     ),
+    host: str | None = typer.Option(
+        None,
+        "--host",
+        "-H",
+        help="Limit post-provision Ansible convergence to a host pattern.",
+    ),
 ) -> None:
     """Run Terraform apply, inventory sync, and Ansible convergence."""
     ctx = prepare_run(workspace, profile)
@@ -30,4 +36,5 @@ def apply_command(
         ctx.paths.post_provision_playbook,
         ctx.paths.workspace,
         ssh_key_path=ctx.ssh_key_path,
+        limit=host,
     )

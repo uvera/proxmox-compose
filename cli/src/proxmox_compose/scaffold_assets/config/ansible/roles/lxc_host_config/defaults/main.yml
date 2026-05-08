@@ -22,6 +22,18 @@ lxc_host_config_node_addresses: {}
 lxc_host_config_tf_output_dir: "{{ playbook_dir }}/../../../infra/terraform/environments/homelab"
 lxc_host_config_ssh_strict_host_key_checking: accept-new
 
+# Extra raw lines appended to /etc/pve/lxc/<vmid>.conf on the Proxmox node (e.g. mp0/mp1 bind mounts).
+# Paths before `,mp=` are on the hypervisor; paths after `mp=` are inside the CT.
+lxc_host_config_extra_lines: []
+
+# Optional: absolute paths on the Proxmox node - mkdir -p via SSH before applying CT lines (bind sources).
+lxc_host_config_ensure_host_dirs: []
+# Optional numeric owner/group/mode applied to ensure_host_dirs on the Proxmox node.
+# For unprivileged LXCs, mapped container root is commonly 100000:100000 on the host.
+lxc_host_config_ensure_host_dirs_owner: ""
+lxc_host_config_ensure_host_dirs_group: ""
+lxc_host_config_ensure_host_dirs_mode: ""
+
 lxc_host_config_line_apparmor_unconfined: "lxc.apparmor.profile: unconfined"
 lxc_host_config_line_apparmor_ubuntu_mask: "lxc.mount.entry: /dev/null sys/module/apparmor/parameters/enabled none bind 0 0"
 lxc_host_config_line_tun_cgroup: "lxc.cgroup2.devices.allow: c 10:200 rwm"

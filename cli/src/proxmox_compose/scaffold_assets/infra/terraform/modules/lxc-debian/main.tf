@@ -63,4 +63,13 @@ resource "proxmox_virtual_environment_container" "this" {
   memory {
     dedicated = var.memory_mb
   }
+
+  dynamic "mount_point" {
+    for_each = var.mount_points
+    content {
+      path      = mount_point.value.path
+      volume    = mount_point.value.volume
+      replicate = try(mount_point.value.replicate, null)
+    }
+  }
 }

@@ -69,3 +69,19 @@ variable "features_keyctl" {
   default     = false
   description = "Optional LXC feature: keyctl (rare; some runtimes)."
 }
+
+variable "mount_points" {
+  type = list(object({
+    path          = string
+    volume        = string
+    acl           = optional(bool)
+    backup        = optional(bool)
+    read_only     = optional(bool)
+    replicate     = optional(bool)
+    shared        = optional(bool)
+    quota         = optional(bool)
+    mount_options = optional(list(string))
+  }))
+  default     = []
+  description = "Bind-mount host paths (volume) into the CT at path. Matches Proxmox mpN entries."
+}

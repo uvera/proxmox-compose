@@ -6,15 +6,22 @@
 
 - name: Build list of CT config lines to ensure on hypervisor
   ansible.builtin.set_fact:
-    _lxc_host_config_lines: "{{ ([] if not (lxc_apparmor_unconfined_enable | bool) else [lxc_host_config_line_apparmor_unconfined]) + ([] if not (lxc_apparmor_ubuntu_mask_enable | bool) else [lxc_host_config_line_apparmor_ubuntu_mask]) + ([] if not (lxc_tun_enable | bool) else [lxc_host_config_line_tun_cgroup, lxc_host_config_line_tun_mount]) }}"
+    _lxc_host_config_lines: >-
+      {{
+        ([] if not (lxc_apparmor_unconfined_enable | bool) else [lxc_host_config_line_apparmor_unconfined])
+        + ([] if not (lxc_apparmor_ubuntu_mask_enable | bool) else [lxc_host_config_line_apparmor_ubuntu_mask])
+        + ([] if not (lxc_tun_enable | bool) else [lxc_host_config_line_tun_cgroup, lxc_host_config_line_tun_mount])
+        + (lxc_host_config_extra_lines | default([]))
+      }}
 
-- name: Require at least one host-config feature when role is enabled
+- name: Require at least one host-config line when role is enabled
   ansible.builtin.assert:
     that:
       - (_lxc_host_config_lines | length) > 0
     fail_msg: >-
-      lxc_host_config_enable is true but no feature flags are enabled. Set one or more of:
-      lxc_apparmor_unconfined_enable, lxc_apparmor_ubuntu_mask_enable, lxc_tun_enable.
+      lxc_host_config_enable is true but no CT config lines were produced. Enable one or more of:
+      lxc_apparmor_unconfined_enable, lxc_apparmor_ubuntu_mask_enable, lxc_tun_enable,
+      or set lxc_host_config_extra_lines (e.g. mp0/mp1 bind mounts).
 
 - name: Read terraform outputs for optional metadata lookup
   ansible.builtin.command:
@@ -140,6 +147,83 @@
       Missing metadata for {{ inventory_hostname }}. Set lxc_host_config_vmid and node target vars
       (lxc_host_config_node_address or lxc_host_config_node_name + lxc_host_config_node_addresses),
       or ensure terraform outputs are available at {{ lxc_host_config_tf_output_dir }}.
+
+- name: Ensure bind-mount source directories exist on Proxmox node
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+    _ensure_dir_program: |
+      import grp
+      import os
+      from pathlib import Path
+      import pwd
+      import stat
+      import sys
+
+      path = Path(sys.argv[1])
+      owner_arg = sys.argv[2].strip() if len(sys.argv) > 2 else ""
+      group_arg = sys.argv[3].strip() if len(sys.argv) > 3 else ""
+      mode_arg = sys.argv[4].strip() if len(sys.argv) > 4 else ""
+
+      def resolve_uid(value: str):
+          if not value:
+              return None
+          if value.isdigit():
+              return int(value)
+          return pwd.getpwnam(value).pw_uid
+
+      def resolve_gid(value: str):
+          if not value:
+              return None
+          if value.isdigit():
+              return int(value)
+          return grp.getgrnam(value).gr_gid
+
+      changed = False
+      if not path.exists():
+          path.mkdir(parents=True, exist_ok=True)
+          changed = True
+      elif not path.is_dir():
+          raise SystemExit(f"{path} exists but is not a directory")
+
+      st = path.stat()
+      target_uid = resolve_uid(owner_arg)
+      target_gid = resolve_gid(group_arg)
+      desired_uid = st.st_uid if target_uid is None else target_uid
+      desired_gid = st.st_gid if target_gid is None else target_gid
+
+      if st.st_uid != desired_uid or st.st_gid != desired_gid:
+          os.chown(path, desired_uid, desired_gid)
+          changed = True
+          st = path.stat()
+
+      if mode_arg:
+          desired_mode = int(mode_arg, 8)
+          current_mode = stat.S_IMODE(st.st_mode)
+          if current_mode != desired_mode:
+              os.chmod(path, desired_mode)
+              changed = True
+
+      if changed:
+          print("changed")
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['python3', '-', item, (lxc_host_config_ensure_host_dirs_owner | default('') | string), (lxc_host_config_ensure_host_dirs_group | default('') | string), (lxc_host_config_ensure_host_dirs_mode | default('') | string)] }}"
+    stdin: "{{ _ensure_dir_program }}"
+  register: _lxc_host_config_ensure_dir
+  changed_when: "'changed' in (_lxc_host_config_ensure_dir.stdout | default(''))"
+  loop: "{{ lxc_host_config_ensure_host_dirs | default([]) }}"
+  loop_control:
+    label: "{{ item }}"
+  when: (lxc_host_config_ensure_host_dirs | default([]) | length) > 0
 
 - name: Ensure CT config line present on Proxmox node
   vars:

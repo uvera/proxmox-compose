@@ -36,6 +36,7 @@ module "debian_lxcs" {
   started         = each.value.started
   features_fuse   = try(each.value.lxc_features_fuse, false)
   features_keyctl = try(each.value.lxc_features_keyctl, false)
+  mount_points    = try(each.value.mount_points, [])
 }
 
 output "vms" {

@@ -201,4 +201,17 @@
           - /run/tailscale-desired-serve.json
       register: tailscale_serve_reconcile
       changed_when: >-
-        ((tailscale_serve_reconcile.stdout | default('{}')) | from_json).changed | default(false) | bool
+        (
+          (
+            (
+              tailscale_serve_reconcile.stdout_lines
+              | default([])
+              | select('match', '^\s*\{.*\}\s*$')
+              | list
+              | last
+              | default('{"changed": false}', true)
+            )
+            | from_json
+          ).changed
+          | default(false)
+        ) | bool
