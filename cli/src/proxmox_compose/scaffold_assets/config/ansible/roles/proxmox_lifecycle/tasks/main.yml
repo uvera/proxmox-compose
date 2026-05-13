@@ -16,11 +16,12 @@
   ansible.builtin.assert:
     that:
       - proxmox_lifecycle_api_host | default('') | string | length > 0
+      - proxmox_lifecycle_api_user | default('') | string | length > 0
       - proxmox_lifecycle_api_token_id | default('') | string | length > 0
       - proxmox_lifecycle_api_token_secret | default('') | string | length > 0
     fail_msg: >-
       Missing Proxmox API token settings. Set PROXMOX_ENDPOINT/PROXMOX_TOKEN_ID/PROXMOX_TOKEN_SECRET
-      in your proxmox-compose profile.
+      in your proxmox-compose profile; api_user is derived from PROXMOX_USER or PROXMOX_TOKEN_ID.
   when: (_proxmox_lifecycle_vms | length) + (_proxmox_lifecycle_lxcs | length) > 0
 
 - name: Validate VM lifecycle entries
@@ -46,31 +47,25 @@
     label: "{{ item.name | default('lxc-entry') }}"
 
 - name: Reconcile VMs with community.general.proxmox_kvm
-  community.general.proxmox_kvm: >-
-    {{
-      {
-        'api_host': proxmox_lifecycle_api_host,
-        'api_token_id': proxmox_lifecycle_api_token_id,
-        'api_token_secret': proxmox_lifecycle_api_token_secret,
-        'validate_certs': proxmox_lifecycle_validate_certs
-      }
-      | combine(item.module_args, recursive=True)
-    }}
+  community.general.proxmox_kvm:
+    api_host: "{{ proxmox_lifecycle_api_host }}"
+    api_user: "{{ proxmox_lifecycle_api_user }}"
+    api_token_id: "{{ proxmox_lifecycle_api_token_id }}"
+    api_token_secret: "{{ proxmox_lifecycle_api_token_secret }}"
+    validate_certs: "{{ proxmox_lifecycle_validate_certs }}"
+  args: "{{ item.module_args }}"
   loop: "{{ _proxmox_lifecycle_vms }}"
   loop_control:
     label: "{{ item.name | default(item.module_args.name | default('vm')) }}"
 
 - name: Reconcile LXCs with community.general.proxmox
-  community.general.proxmox: >-
-    {{
-      {
-        'api_host': proxmox_lifecycle_api_host,
-        'api_token_id': proxmox_lifecycle_api_token_id,
-        'api_token_secret': proxmox_lifecycle_api_token_secret,
-        'validate_certs': proxmox_lifecycle_validate_certs
-      }
-      | combine(item.module_args, recursive=True)
-    }}
+  community.general.proxmox:
+    api_host: "{{ proxmox_lifecycle_api_host }}"
+    api_user: "{{ proxmox_lifecycle_api_user }}"
+    api_token_id: "{{ proxmox_lifecycle_api_token_id }}"
+    api_token_secret: "{{ proxmox_lifecycle_api_token_secret }}"
+    validate_certs: "{{ proxmox_lifecycle_validate_certs }}"
+  args: "{{ item.module_args }}"
   loop: "{{ _proxmox_lifecycle_lxcs }}"
   loop_control:
     label: "{{ item.name | default(item.module_args.hostname | default('lxc')) }}"

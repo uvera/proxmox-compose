@@ -7,8 +7,37 @@ proxmox_lifecycle_lxcs: []
 # Safety guard: only allow delete actions when explicitly enabled.
 proxmox_lifecycle_allow_absent: false
 
-# Auth defaults from profile env.
-proxmox_lifecycle_api_host: "{{ lookup('env', 'PROXMOX_ENDPOINT') }}"
-proxmox_lifecycle_api_token_id: "{{ lookup('env', 'PROXMOX_TOKEN_ID') }}"
+# Auth defaults from proxmox-compose profile env.
+# community.general.proxmox expects api_host as plain host/IP, not a full URL.
+proxmox_lifecycle_api_host: >-
+  {{
+    (
+      lookup('env', 'PROXMOX_HOST')
+      | default(
+          lookup('env', 'PROXMOX_ENDPOINT')
+          | regex_replace('^https?://', '')
+          | regex_replace('/.*$', '')
+          | regex_replace(':\\d+$', ''),
+          true
+        )
+      | string
+    )
+  }}
+proxmox_lifecycle_api_token_id: >-
+  {{
+    (
+      lookup('env', 'PROXMOX_TOKEN_ID')
+      | regex_replace('^.*!', '')
+      | string
+    )
+  }}
 proxmox_lifecycle_api_token_secret: "{{ lookup('env', 'PROXMOX_TOKEN_SECRET') }}"
+proxmox_lifecycle_api_user: >-
+  {{
+    (
+      lookup('env', 'PROXMOX_USER')
+      | default(lookup('env', 'PROXMOX_TOKEN_ID') | regex_replace('!.*$', ''), true)
+      | string
+    )
+  }}
 proxmox_lifecycle_validate_certs: "{{ (lookup('env', 'PROXMOX_INSECURE') | default('false', true) | lower) not in ['1', 'true', 'yes'] }}"

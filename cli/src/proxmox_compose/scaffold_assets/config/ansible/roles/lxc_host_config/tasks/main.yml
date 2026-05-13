@@ -181,6 +181,37 @@
     label: "{{ item }}"
   when: (lxc_host_config_ensure_host_dirs | default([]) | length) > 0
 
+- name: Check whether CT config exists on Proxmox node
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['test', '-f', '/etc/pve/lxc/' ~ (_lxc_host_config_vmid | string) ~ '.conf'] }}"
+  register: _lxc_host_config_conf_exists
+  changed_when: false
+  failed_when:
+    - (_lxc_host_config_conf_exists.rc | int) != 0
+    - not (ansible_check_mode | bool)
+
+- name: Note skipped CT host config patch in check mode
+  ansible.builtin.debug:
+    msg: >-
+      Skipping host-side CT config patch for VMID {{ _lxc_host_config_vmid }} in check mode:
+      /etc/pve/lxc/{{ _lxc_host_config_vmid }}.conf does not exist yet.
+      This is expected when lifecycle creation is planned but not applied.
+  when:
+    - ansible_check_mode | bool
+    - (_lxc_host_config_conf_exists.rc | int) != 0
+
 - name: Ensure CT config line present on Proxmox node
   vars:
     _ssh_argv_head: >-
@@ -223,6 +254,7 @@
   loop: "{{ _lxc_host_config_lines }}"
   loop_control:
     label: "{{ item }}"
+  when: (_lxc_host_config_conf_exists.rc | int) == 0
 
 - name: Restart CT on hypervisor when its config changed and restart is allowed
   vars:
