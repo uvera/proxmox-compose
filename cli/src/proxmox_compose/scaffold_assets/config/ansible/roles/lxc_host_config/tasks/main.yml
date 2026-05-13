@@ -23,66 +23,13 @@
       lxc_apparmor_unconfined_enable, lxc_apparmor_ubuntu_mask_enable, lxc_tun_enable,
       or set lxc_host_config_extra_lines (e.g. mp0/mp1 bind mounts).
 
-- name: Read terraform outputs for optional metadata lookup
-  ansible.builtin.command:
-    argv:
-      - terraform
-      - output
-      - -json
-  args:
-    chdir: "{{ lxc_host_config_tf_output_dir }}"
-  register: _lxc_host_config_tf_output_raw
-  changed_when: false
-  failed_when: false
-  delegate_to: localhost
-  run_once: true
-  when: lxc_host_config_read_terraform_outputs | bool
-
-- name: Parse terraform output maps for host metadata
-  ansible.builtin.set_fact:
-    lxc_host_config_tf_outputs: >-
-      {{
-        (_lxc_host_config_tf_output_raw.stdout | from_json)
-        if (
-          (_lxc_host_config_tf_output_raw.rc | default(1)) == 0
-          and (_lxc_host_config_tf_output_raw.stdout | default('') | trim | length) > 0
-        )
-        else {}
-      }}
-  delegate_to: localhost
-  delegate_facts: true
-  run_once: true
-  when: lxc_host_config_read_terraform_outputs | bool
-
-- name: Extract terraform host metadata maps
-  ansible.builtin.set_fact:
-    lxc_host_config_tf_debian_lxcs: "{{ hostvars['localhost'].lxc_host_config_tf_outputs.debian_lxcs.value | default({}) }}"
-    lxc_host_config_tf_node_addresses: "{{ hostvars['localhost'].lxc_host_config_tf_outputs.proxmox_node_addresses.value | default({}) }}"
-    lxc_host_config_tf_ssh_user: "{{ hostvars['localhost'].lxc_host_config_tf_outputs.proxmox_ssh_username.value | default('root') }}"
-  delegate_to: localhost
-  delegate_facts: true
-  run_once: true
-  when: lxc_host_config_read_terraform_outputs | bool
-
-- name: Initialize empty terraform metadata maps when compatibility mode disabled
-  ansible.builtin.set_fact:
-    lxc_host_config_tf_debian_lxcs: {}
-    lxc_host_config_tf_node_addresses: {}
-    lxc_host_config_tf_ssh_user: ""
-  delegate_to: localhost
-  delegate_facts: true
-  run_once: true
-  when: not (lxc_host_config_read_terraform_outputs | bool)
-
 - name: Resolve host-specific metadata for Proxmox SSH patching
   ansible.builtin.set_fact:
-    _lxc_host_config_tf_meta: "{{ (hostvars['localhost'].lxc_host_config_tf_debian_lxcs | default({})).get(inventory_hostname, {}) }}"
     _lxc_host_config_vmid: >-
       {{
         [
           lxc_host_config_vmid | default(''),
-          proxmox_lxc_vmid | default(''),
-          _lxc_host_config_tf_meta.vmid | default('')
+          proxmox_lxc_vmid | default('')
         ]
         | map('string')
         | map('trim')
@@ -94,8 +41,7 @@
       {{
         [
           lxc_host_config_node_name | default(''),
-          proxmox_node_name | default(''),
-          _lxc_host_config_tf_meta.node_name | default('')
+          proxmox_node_name | default('')
         ]
         | map('string')
         | map('trim')
@@ -105,14 +51,12 @@
       }}
     _lxc_host_config_node_address_map: >-
       {{
-        (hostvars['localhost'].lxc_host_config_tf_node_addresses | default({}))
-        | combine(lxc_host_config_node_addresses | default({}), recursive=True)
+        lxc_host_config_node_addresses | default({})
       }}
     _lxc_host_config_ssh_user: >-
       {{
         [
           lxc_host_config_ssh_user | default(''),
-          hostvars['localhost'].lxc_host_config_tf_ssh_user | default(''),
           'root'
         ]
         | map('string')
@@ -158,9 +102,7 @@
       - (_lxc_host_config_ssh_user | string | length) > 0
     fail_msg: >-
       Missing metadata for {{ inventory_hostname }}. Set lxc_host_config_vmid and node target vars
-      (lxc_host_config_node_address or lxc_host_config_node_name + lxc_host_config_node_addresses),
-      or enable lxc_host_config_read_terraform_outputs with valid terraform outputs at
-      {{ lxc_host_config_tf_output_dir }}.
+      (lxc_host_config_node_address or lxc_host_config_node_name + lxc_host_config_node_addresses).
 
 - name: Ensure bind-mount source directories exist on Proxmox node
   vars:

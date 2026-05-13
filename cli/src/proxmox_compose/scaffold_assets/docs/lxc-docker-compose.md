@@ -54,8 +54,6 @@ During **`proxmox-compose apply`** and **`proxmox-compose provision-existing`**,
    - optional `lxc_host_config_ssh_user` / `lxc_host_config_ssh_private_key_file`
 3. Re-run **`proxmox-compose apply`** or **`proxmox-compose provision-existing`**.
 
-Optional compatibility fallback: set `lxc_host_config_read_terraform_outputs: true` to read metadata from legacy Terraform outputs.
-
 ## 3. Ansible: git / inline Compose on the LXC
 
 Same variable shape as VM Compose (`vm_compose_apps`), but use **`lxc_compose_apps`** in host vars (or group vars) for LXCs.

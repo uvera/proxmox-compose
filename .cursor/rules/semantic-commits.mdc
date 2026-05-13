@@ -14,11 +14,11 @@ alwaysApply: true
   - `docs`: documentation-only change
   - `test`: tests added or updated
   - `chore`: tooling/build/maintenance
-- Prefer meaningful scopes like `cli`, `ansible`, `terraform`, `docs`, or `rules`.
+- Prefer meaningful scopes like `cli`, `ansible`, `docs`, or `rules`.
 - Add a short body when useful to explain intent and impact.
 
 Examples:
 - `feat(cli): add vault editing command`
 - `fix(ansible): handle missing compose env files`
-- `refactor(terraform): split lxc defaults by module`
+- `refactor(ansible): split lxc defaults by module`
 

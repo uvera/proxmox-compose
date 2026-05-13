@@ -46,7 +46,7 @@ This git repository is the **`proxmox-compose` CLI** and embedded scaffold templ
 ## Safety and Idempotency
 - Prefer declarative file updates over ad-hoc shell commands.
 - Never hardcode real host IPs, usernames, or private paths in committed templates.
-- Keep generated/runtime artifacts out of git (`build/`, `*.egg-info`, `.terraform/`).
+- Keep generated/runtime artifacts out of git (`build/`, `*.egg-info`).
 - Avoid destructive operations unless explicitly requested.
 - Keep changes minimal and scoped; preserve user edits outside task scope.
 

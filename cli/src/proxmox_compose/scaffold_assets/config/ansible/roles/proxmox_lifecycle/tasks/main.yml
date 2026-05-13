@@ -20,7 +20,7 @@
       - proxmox_lifecycle_api_token_secret | default('') | string | length > 0
     fail_msg: >-
       Missing Proxmox API token settings. Set PROXMOX_ENDPOINT/PROXMOX_TOKEN_ID/PROXMOX_TOKEN_SECRET
-      (or legacy TF_VAR_* equivalents) in your proxmox-compose profile.
+      in your proxmox-compose profile.
   when: (_proxmox_lifecycle_vms | length) + (_proxmox_lifecycle_lxcs | length) > 0
 
 - name: Validate VM lifecycle entries

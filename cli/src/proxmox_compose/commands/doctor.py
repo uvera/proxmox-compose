@@ -13,11 +13,7 @@ from proxmox_compose.profiles import (
 
 REQUIRED_BINARIES = ["ansible-playbook", "git"]
 
-REQUIRED_PROXMOX_ENV_KEY_ALIASES = [
-    ("PROXMOX_ENDPOINT", "TF_VAR_proxmox_endpoint"),
-    ("PROXMOX_TOKEN_ID", "TF_VAR_proxmox_token_id"),
-    ("PROXMOX_TOKEN_SECRET", "TF_VAR_proxmox_token_secret"),
-]
+REQUIRED_PROXMOX_ENV_KEYS = ["PROXMOX_ENDPOINT", "PROXMOX_TOKEN_ID", "PROXMOX_TOKEN_SECRET"]
 
 
 def _binary_checks() -> tuple[list[str], list[str]]:
@@ -35,18 +31,12 @@ def _profile_checks(profile: str) -> tuple[list[str], list[str], bool]:
     profile_data = get_profile(profile)
     env_vars = profile_data.get("env", {})
     secret_env_commands = get_profile_secret_env_commands(profile)
-    ok: list[str] = []
-    missing: list[str] = []
-    for primary_key, fallback_key in REQUIRED_PROXMOX_ENV_KEY_ALIASES:
-        has_primary = env_vars.get(primary_key) or secret_env_commands.get(primary_key)
-        has_fallback = env_vars.get(fallback_key) or secret_env_commands.get(fallback_key)
-        if has_primary or has_fallback:
-            if has_primary:
-                ok.append(primary_key)
-            else:
-                ok.append(f"{primary_key} (via {fallback_key})")
-            continue
-        missing.append(primary_key)
+    missing = [
+        key
+        for key in REQUIRED_PROXMOX_ENV_KEYS
+        if not env_vars.get(key) and not secret_env_commands.get(key)
+    ]
+    ok = [key for key in REQUIRED_PROXMOX_ENV_KEYS if key not in missing]
     return ok, missing, bool(profile_data)
 
 

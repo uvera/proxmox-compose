@@ -3,7 +3,6 @@
 ## Proxmox API token auth
 
 - Authentication is **API token only**: set `PROXMOX_ENDPOINT`, `PROXMOX_TOKEN_ID`, and `PROXMOX_TOKEN_SECRET` in `~/.config/proxmox-compose/profiles.yml`.
-- Legacy `TF_VAR_proxmox_*` profile keys are accepted for migration compatibility.
 
 ## Secrets
 

@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "proxmox-compose"
 version = "0.1.0"
-description = "Composable Proxmox VM/LXC provisioning with Terraform and Ansible."
+description = "Composable Proxmox VM/LXC provisioning with Ansible."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [{name = "Proxmox Compose Contributors"}]

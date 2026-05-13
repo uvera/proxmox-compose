@@ -18,10 +18,6 @@ lxc_host_config_ssh_private_key_file: ""
 # Optional shared map override for node_name -> SSH target hostname/IP.
 lxc_host_config_node_addresses: {}
 
-# Optional compatibility mode: read Terraform outputs for metadata fallback.
-# Keep disabled for Ansible-first workflows.
-lxc_host_config_read_terraform_outputs: false
-lxc_host_config_tf_output_dir: "{{ playbook_dir }}/../../../infra/terraform/environments/homelab"
 lxc_host_config_ssh_strict_host_key_checking: accept-new
 
 # Extra raw lines appended to /etc/pve/lxc/<vmid>.conf on the Proxmox node (e.g. mp0/mp1 bind mounts).

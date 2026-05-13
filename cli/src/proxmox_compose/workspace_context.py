@@ -13,10 +13,6 @@ class WorkspacePaths:
     workspace: Path
 
     @property
-    def terraform_homelab(self) -> Path:
-        return self.workspace / "infra/terraform/environments/homelab"
-
-    @property
     def post_provision_playbook(self) -> Path:
         return self.workspace / "config/ansible/playbooks/post-provision.yml"
 

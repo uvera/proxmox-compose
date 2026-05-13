@@ -2,7 +2,7 @@
 # Rename to match your inventory hostname.
 
 # Optional: during apply/provision-existing, patch Proxmox host CT config (SSH from controller to node).
-# Set per-host lxc_host_config_* metadata, or enable Terraform compatibility mode in the role.
+# Set per-host lxc_host_config_* metadata.
 # lxc_host_config_enable: true
 # lxc_apparmor_unconfined_enable: true   # Docker/runc in LXC (CVE-2025-52881 workaround)
 # lxc_tun_enable: true                    # if using kernel TUN Tailscale on this CT

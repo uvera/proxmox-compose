@@ -5,7 +5,7 @@ This repository contains the `proxmox-compose` CLI and scaffold templates used b
 The default model is now **Ansible-first**:
 - inventory and host/group vars are the source of truth for infrastructure metadata,
 - `plan` and `apply` run Ansible playbooks for lifecycle + day-2 convergence,
-- Terraform is optional compatibility tooling for existing environments.
+- lifecycle and configuration are fully Ansible-driven.
 
 ## Core Commands
 
@@ -31,8 +31,6 @@ profiles:
       PROXMOX_TOKEN_SECRET: "pass homelab/proxmox_token_secret"
 ```
 
-Legacy `TF_VAR_proxmox_*` profile keys are still accepted during migration.
-
 ## Scaffold Layout (after `init`)
 
 - `config/ansible/playbooks/provision-infra.yml` - Ansible lifecycle reconciliation entrypoint.
@@ -41,7 +39,6 @@ Legacy `TF_VAR_proxmox_*` profile keys are still accepted during migration.
 - `config/ansible/inventory/static.yml` - tracked inventory groups.
 - `config/ansible/inventory/host_vars/` and `group_vars/` - host metadata and app/service config.
 - `docs/ansible-infra-model.md` - inventory schema and lifecycle contract.
-- `docs/migrate-from-terraform.md` - cutover guide for Terraform-managed repos.
 
 ## Validation
 

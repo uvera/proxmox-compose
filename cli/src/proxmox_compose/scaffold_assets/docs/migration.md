@@ -1,11 +1,11 @@
-# Migrate From Terraform
+# Migration Guide
 
-Use this guide to migrate a Terraform-managed workspace to the Ansible-first model.
+Use this guide to migrate an existing workspace to the current inventory-first model.
 
 ## 1) Pre-migration audit
 
-- Export current VM/LXC metadata from Terraform outputs/state (`vmid`, `node`, IP/user).
-- Inventory all hosts currently managed by Terraform:
+- Export current VM/LXC metadata (`vmid`, `node`, IP/user) from your existing source-of-truth.
+- Inventory all managed hosts:
   - Debian VMs
   - Fedora VMs
   - Debian LXCs
@@ -28,15 +28,15 @@ For LXCs that use `lxc_host_config`, set:
 
 Optionally add explicit `proxmox_compose_inventory_group` when you do not want inferred grouping.
 
-## 3) Map Terraform outputs to Ansible vars
+## 3) Map old metadata to inventory vars
 
-- `outputs.vms.<host>.ansible_host` -> `host_vars/<host>.yml: ansible_host`
-- `outputs.vms.<host>.ansible_user` -> `host_vars/<host>.yml: ansible_user`
-- `outputs.vms.<host>.os` -> `host_vars/<host>.yml: proxmox_compose_host_os`
-- `outputs.debian_lxcs.<host>.vmid` -> `host_vars/<host>.yml: lxc_host_config_vmid`
-- `outputs.debian_lxcs.<host>.node_name` -> `host_vars/<host>.yml: lxc_host_config_node_name`
-- `outputs.proxmox_node_addresses` -> `lxc_host_config_node_addresses`
-- `outputs.proxmox_ssh_username` -> `lxc_host_config_ssh_user` (optional)
+- host address -> `host_vars/<host>.yml: ansible_host`
+- host user -> `host_vars/<host>.yml: ansible_user`
+- VM OS -> `host_vars/<host>.yml: proxmox_compose_host_os`
+- LXC vmid -> `host_vars/<host>.yml: lxc_host_config_vmid`
+- LXC node name -> `host_vars/<host>.yml: lxc_host_config_node_name`
+- node address map -> `lxc_host_config_node_addresses`
+- Proxmox SSH user -> `lxc_host_config_ssh_user` (optional)
 
 ## 4) Add lifecycle declarations
 
@@ -57,15 +57,15 @@ Each item should carry `module_args` compatible with the target Ansible module.
 
 ## 6) Cleanup
 
-- Stop using Terraform in day-to-day workflows.
-- Keep Terraform files as archive/rollback material until you complete one stable cycle.
-- Remove Terraform-specific CI checks and docs in your migrated repo.
+- Stop using old lifecycle tooling in day-to-day workflows.
+- Keep old files as archive/rollback material until one stable cycle is complete.
+- Remove old CI checks and docs from your migrated repo.
 
 ## Rollback plan
 
 If cutover fails:
 
 1. Restore the previous inventory and host/group vars from git.
-2. Re-enable Terraform-driven workflow and rerun `plan/apply` in the old model.
+2. Re-enable the previous workflow and rerun your normal converge command.
 3. Compare host connectivity and service health.
 4. Retry migration host-by-host rather than all-at-once.

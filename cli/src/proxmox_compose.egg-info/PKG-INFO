@@ -1,7 +1,7 @@
 Metadata-Version: 2.4
 Name: proxmox-compose
 Version: 0.1.0
-Summary: Composable Proxmox VM/LXC provisioning with Terraform and Ansible.
+Summary: Composable Proxmox VM/LXC provisioning with Ansible.
 Author: Proxmox Compose Contributors
 License: MIT
 Classifier: Programming Language :: Python :: 3

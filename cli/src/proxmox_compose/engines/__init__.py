@@ -1,1 +1,1 @@
-"""Engine wrappers for Terraform and Ansible."""
+"""Engine wrappers for command execution."""

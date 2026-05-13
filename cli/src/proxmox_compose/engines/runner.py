@@ -70,8 +70,8 @@ def run_command(
     """
     Run a subprocess; on failure raise CommandFailedError (non-zero exit) or CommandNotFoundError.
 
-    Use capture=False (default) to stream Terraform/Ansible interactively.
-    Use capture=True when you need stdout (for example JSON from `terraform output`).
+    Use capture=False (default) to stream commands interactively.
+    Use capture=True when you need stdout for downstream parsing.
     """
     kw: dict[str, Any] = {
         "cwd": str(cwd.resolve()) if cwd is not None else None,

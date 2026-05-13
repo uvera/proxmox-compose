@@ -37,3 +37,16 @@ def test_scaffold_sync_can_skip_ai_files(tmp_path: Path) -> None:
 
     assert result.exit_code == 0, result.output
     assert docs_file.read_text() == "keep me"
+
+
+def test_scaffold_sync_prunes_legacy_infra_tree(tmp_path: Path) -> None:
+    workspace = tmp_path / "repo"
+    (workspace / ".git").mkdir(parents=True)
+    legacy_file = workspace / "infra/obsolete-path/file.txt"
+    legacy_file.parent.mkdir(parents=True, exist_ok=True)
+    legacy_file.write_text("legacy")
+
+    result = runner.invoke(app, ["scaffold", "sync", "--workspace", str(workspace)])
+
+    assert result.exit_code == 0, result.output
+    assert not (workspace / "infra").exists()

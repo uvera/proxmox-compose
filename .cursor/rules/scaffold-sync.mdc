@@ -5,14 +5,14 @@ alwaysApply: true
 
 # Scaffold templates
 
-This repository ships Terraform and Ansible **templates** under
+This repository ships scaffold **templates** under
 `cli/src/proxmox_compose/scaffold_assets/`. They are copied into user
 repositories by `proxmox-compose init` and `proxmox-compose scaffold sync`.
 
-When changing Terraform modules, homelab env files, Ansible roles, playbooks, or
-docs that belong in a generated workspace, edit the files under
+When changing homelab env files, Ansible roles, playbooks, or docs that belong
+in a generated workspace, edit the files under
 `cli/src/proxmox_compose/scaffold_assets/**` (preserve the same relative paths
-as in a scaffolded repo: `infra/terraform/...`, `config/ansible/...`, etc.).
+as in a scaffolded repo: `config/ansible/...`, etc.).
 
 ## Required behavior
 
@@ -23,7 +23,6 @@ as in a scaffolded repo: `infra/terraform/...`, `config/ansible/...`, etc.).
 
 ## Common paths
 
-- `cli/src/proxmox_compose/scaffold_assets/infra/terraform/**`
 - `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app/**`
 - `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/**`
 - `cli/src/proxmox_compose/scaffold_assets/config/ansible/playbooks/**`

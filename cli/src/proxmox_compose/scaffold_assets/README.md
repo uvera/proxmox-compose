@@ -79,8 +79,6 @@ Required profile keys:
 - `PROXMOX_INSECURE` (optional) — `true` to skip TLS verification on a
   homelab CA.
 
-Legacy `TF_VAR_proxmox_*` names remain accepted for compatibility.
-
 Create a Proxmox API token (one-time):
 
 1. In the Proxmox UI: **Datacenter → Permissions → API Tokens → Add**.
