@@ -27,6 +27,10 @@ def _read_host_vars(inventory_dir: Path) -> dict[str, dict[str, Any]]:
 
     data: dict[str, dict[str, Any]] = {}
     for host_file in sorted(host_vars_dir.glob("*.yml")):
+        name = host_file.name
+        # Keep scaffold examples in-place but inert until renamed/copied to a real hostname.
+        if name.startswith("example_") or name.endswith(".example.yml"):
+            continue
         parsed = yaml.safe_load(host_file.read_text()) or {}
         if not isinstance(parsed, dict):
             continue
