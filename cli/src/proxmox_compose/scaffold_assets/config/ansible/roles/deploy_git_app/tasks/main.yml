@@ -171,17 +171,51 @@
     label: "{{ item.dest }}"
 
 - name: Write managed files for app stacks
+  ansible.builtin.assert:
+    that:
+      - item.1.content is defined or item.1.src is defined
+    fail_msg: >-
+      managed_files entry for {{ item.1.dest }} must define either `content` or `src`.
+  loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.1.dest }}"
+
+- name: Write managed files for app stacks (inline content)
   ansible.builtin.copy:
     dest: "{{ item.1.dest }}"
     content: "{{ item.1.content }}"
     owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
     group: "{{ item.1.group | default(item.0.group | default(omit)) }}"
     mode: "{{ item.1.mode | default('0644') }}"
+  when: item.1.content is defined
   loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
   loop_control:
     label: "{{ item.1.dest }}"
   no_log: "{{ item.1.secret | default(false) }}"
-  register: _deploy_git_app_managed_file_writes
+  register: _deploy_git_app_managed_file_content_writes
+
+- name: Write managed files for app stacks (controller source file)
+  ansible.builtin.copy:
+    dest: "{{ item.1.dest }}"
+    src: "{{ item.1.src }}"
+    owner: "{{ item.1.owner | default(item.0.owner | default('root')) }}"
+    group: "{{ item.1.group | default(item.0.group | default(omit)) }}"
+    mode: "{{ item.1.mode | default('0644') }}"
+  when: item.1.src is defined
+  loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.1.dest }}"
+  no_log: "{{ item.1.secret | default(false) }}"
+  register: _deploy_git_app_managed_file_src_writes
+
+- name: Merge managed file write results
+  ansible.builtin.set_fact:
+    _deploy_git_app_managed_file_writes:
+      results: >-
+        {{
+          (_deploy_git_app_managed_file_content_writes.results | default([]))
+          + (_deploy_git_app_managed_file_src_writes.results | default([]))
+        }}
 
 - name: Check Docker Compose v2 CLI availability
   ansible.builtin.command:
