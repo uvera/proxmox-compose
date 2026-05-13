@@ -18,3 +18,17 @@ lxc_host_config_node_name: pve
 lxc_host_config_node_addresses:
   pve: 10.0.0.2
 lxc_host_config_ssh_user: root
+
+# Optional: kernel TUN for tailscaled inside an unprivileged LXC.
+# lxc_tun_enable: true
+#
+# Optional: Tailscale daemon on the LXC (auth key should come from vault).
+# tailscale_enable: true
+# tailscale_hostname: my-lxc
+#
+# Optional: Caddy reverse proxy for HTTPS/tailnet entrypoint to an upstream.
+# lxc_caddy_proxy_enable: true
+# lxc_caddy_proxy_server_name: app.example.ts.net
+# lxc_caddy_proxy_upstream: 10.0.0.2:8006
+# lxc_caddy_proxy_upstream_tls: true
+# lxc_caddy_proxy_upstream_tls_insecure_skip_verify: false

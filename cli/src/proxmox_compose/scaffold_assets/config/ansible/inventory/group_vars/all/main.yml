@@ -13,6 +13,13 @@ lxc_go_build_local: true
 tailscale_enable: false
 tailscale_serve: []
 
+# Optional lifecycle declarations consumed by role proxmox_lifecycle.
+# Keep concrete host metadata in host_vars and reference it here.
+proxmox_lifecycle_vms: []
+proxmox_lifecycle_lxcs: []
+# Safety guard for destructive lifecycle state=absent operations.
+proxmox_lifecycle_allow_absent: false
+
 # Opt-in: patch /etc/pve/lxc/<vmid>.conf on the Proxmox node over SSH from the Ansible controller.
 # See role lxc_host_config and docs/lxc-docker-compose.md.
 lxc_host_config_enable: false
