@@ -55,6 +55,10 @@ src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app/tasks/ma
 src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app/tasks/prepull.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/existing_maintenance/defaults/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/existing_maintenance/tasks/main.yml
+src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_caddy_proxy/defaults/main.yml
+src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_caddy_proxy/handlers/main.yml
+src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_caddy_proxy/tasks/main.yml
+src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_caddy_proxy/templates/Caddyfile.j2
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_docker/defaults/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_docker/tasks/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_host_config/defaults/main.yml
