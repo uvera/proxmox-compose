@@ -3,9 +3,9 @@
 When assisting in this repository:
 
 ## Architecture Boundaries
-- Terraform owns lifecycle state for VMs and LXCs.
+- Ansible inventory + vars own lifecycle metadata for VMs and LXCs.
 - Ansible owns OS/app configuration and day-2 operations.
-- Do not reimplement IaC state logic in custom Python.
+- Keep lifecycle orchestration in Ansible playbooks/roles.
 
 ## Supported Matrix
 - VM operating systems: Debian, Fedora.
@@ -14,7 +14,7 @@ When assisting in this repository:
 - LXC workloads should default to systemd services.
 
 ## Approach Selection
-- Use `apply` for newly provisioned resources and post-provision converge.
+- Use `apply` for lifecycle reconciliation (`provision-infra.yml`) and post-provision converge.
 - Use `provision-existing` for brownfield/existing machines.
 - Use host vars for per-host compose and `.env` behavior.
 - Use vault-backed variables for secrets material.
@@ -34,6 +34,6 @@ When assisting in this repository:
 
 ## Execution Discipline
 - Run `doctor` before orchestration commands.
-- Keep inventory synchronized when mixing Terraform + static hosts.
-- Validate changes (Terraform fmt/init/validate, Ansible syntax check, Python tests).
+- Keep inventory synchronized when editing host/group vars.
+- Validate changes (Ansible syntax check, Python tests).
 - If a task is environment-specific, implement as host_vars examples, not committed personal defaults.

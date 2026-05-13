@@ -1,0 +1,76 @@
+---
+- name: Normalize lifecycle entry lists
+  ansible.builtin.set_fact:
+    _proxmox_lifecycle_vms: "{{ proxmox_lifecycle_vms | default([]) }}"
+    _proxmox_lifecycle_lxcs: "{{ proxmox_lifecycle_lxcs | default([]) }}"
+
+- name: Skip lifecycle role when no definitions are present
+  ansible.builtin.debug:
+    msg: >-
+      proxmox_lifecycle_vms and proxmox_lifecycle_lxcs are empty; skipping infra provisioning.
+  when:
+    - (_proxmox_lifecycle_vms | length) == 0
+    - (_proxmox_lifecycle_lxcs | length) == 0
+
+- name: Validate token auth inputs when lifecycle definitions exist
+  ansible.builtin.assert:
+    that:
+      - proxmox_lifecycle_api_host | default('') | string | length > 0
+      - proxmox_lifecycle_api_token_id | default('') | string | length > 0
+      - proxmox_lifecycle_api_token_secret | default('') | string | length > 0
+    fail_msg: >-
+      Missing Proxmox API token settings. Set PROXMOX_ENDPOINT/PROXMOX_TOKEN_ID/PROXMOX_TOKEN_SECRET
+      (or legacy TF_VAR_* equivalents) in your proxmox-compose profile.
+  when: (_proxmox_lifecycle_vms | length) + (_proxmox_lifecycle_lxcs | length) > 0
+
+- name: Validate VM lifecycle entries
+  ansible.builtin.assert:
+    that:
+      - item.module_args is mapping
+      - item.module_args.state is not defined or (item.module_args.state != 'absent' or proxmox_lifecycle_allow_absent | bool)
+    fail_msg: >-
+      VM lifecycle entries must provide module_args. state=absent requires proxmox_lifecycle_allow_absent=true.
+  loop: "{{ _proxmox_lifecycle_vms }}"
+  loop_control:
+    label: "{{ item.name | default('vm-entry') }}"
+
+- name: Validate LXC lifecycle entries
+  ansible.builtin.assert:
+    that:
+      - item.module_args is mapping
+      - item.module_args.state is not defined or (item.module_args.state != 'absent' or proxmox_lifecycle_allow_absent | bool)
+    fail_msg: >-
+      LXC lifecycle entries must provide module_args. state=absent requires proxmox_lifecycle_allow_absent=true.
+  loop: "{{ _proxmox_lifecycle_lxcs }}"
+  loop_control:
+    label: "{{ item.name | default('lxc-entry') }}"
+
+- name: Reconcile VMs with community.general.proxmox_kvm
+  community.general.proxmox_kvm: >-
+    {{
+      {
+        'api_host': proxmox_lifecycle_api_host,
+        'api_token_id': proxmox_lifecycle_api_token_id,
+        'api_token_secret': proxmox_lifecycle_api_token_secret,
+        'validate_certs': proxmox_lifecycle_validate_certs
+      }
+      | combine(item.module_args, recursive=True)
+    }}
+  loop: "{{ _proxmox_lifecycle_vms }}"
+  loop_control:
+    label: "{{ item.name | default(item.module_args.name | default('vm')) }}"
+
+- name: Reconcile LXCs with community.general.proxmox
+  community.general.proxmox: >-
+    {{
+      {
+        'api_host': proxmox_lifecycle_api_host,
+        'api_token_id': proxmox_lifecycle_api_token_id,
+        'api_token_secret': proxmox_lifecycle_api_token_secret,
+        'validate_certs': proxmox_lifecycle_validate_certs
+      }
+      | combine(item.module_args, recursive=True)
+    }}
+  loop: "{{ _proxmox_lifecycle_lxcs }}"
+  loop_control:
+    label: "{{ item.name | default(item.module_args.hostname | default('lxc')) }}"

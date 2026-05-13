@@ -1,0 +1,20 @@
+# Example: host metadata for an Ansible-managed Debian LXC.
+# Rename this file to match your inventory hostname.
+
+# Inventory sync can infer groups from these keys:
+proxmox_compose_host_kind: lxc
+proxmox_compose_host_os: debian
+# Optional explicit override:
+# proxmox_compose_inventory_group: debian_lxcs
+
+# Host connection defaults consumed in hosts.yml generation.
+ansible_host: 10.0.0.50
+ansible_user: root
+
+# Metadata used by role lxc_host_config.
+lxc_host_config_enable: true
+lxc_host_config_vmid: 210
+lxc_host_config_node_name: pve
+lxc_host_config_node_addresses:
+  pve: 10.0.0.2
+lxc_host_config_ssh_user: root

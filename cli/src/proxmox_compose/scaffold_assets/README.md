@@ -1,10 +1,10 @@
 # Proxmox Compose
 
-Infrastructure-as-code for Proxmox with Terraform + Ansible, orchestrated by `proxmox-compose`.
+Infrastructure-as-code for Proxmox with an Ansible-first workflow, orchestrated by `proxmox-compose`.
 
 ## What It Does
 
-- Provisions Proxmox **VMs** (Debian/Fedora) and **LXCs** (Debian only) with Terraform.
+- Reconciles Proxmox VM/LXC lifecycle using Ansible playbooks and inventory metadata.
 - Configures hosts and workloads with Ansible.
 - Supports both:
   - greenfield provisioning (`plan` / `apply`)
@@ -48,11 +48,11 @@ profiles:
   default:
     ssh_key_path: ~/.ssh/id_ed25519
     secret_env_commands:
-      TF_VAR_proxmox_token_secret: "pass homelab/proxmox_token_secret"
+      PROXMOX_TOKEN_SECRET: "pass homelab/proxmox_token_secret"
     env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
-      TF_VAR_proxmox_insecure: "true"
+      PROXMOX_ENDPOINT: https://proxmox.local:8006/api2/json
+      PROXMOX_TOKEN_ID: ansible@pve!proxmox-compose
+      PROXMOX_INSECURE: "true"
 ```
 
 `secret_env_commands` supports either a shell-like string command or an argv
@@ -60,7 +60,7 @@ list, for example:
 
 ```yaml
 secret_env_commands:
-  TF_VAR_proxmox_token_secret:
+  PROXMOX_TOKEN_SECRET:
     - op
     - read
     - op://Homelab/Proxmox/token_secret
@@ -69,20 +69,22 @@ secret_env_commands:
 ### Proxmox API token authentication (token-only)
 
 Authentication is **token-only**. Username/password and TOTP/OTP flows are no
-longer supported by the CLI or the Terraform scaffold.
+longer supported by the CLI.
 
-Required `TF_VAR_*` keys for the Terraform provider:
+Required profile keys:
 
-- `TF_VAR_proxmox_endpoint` — for example `https://proxmox.local:8006/api2/json`.
-- `TF_VAR_proxmox_token_id` — for example `terraform@pve!proxmox-compose`.
-- `TF_VAR_proxmox_token_secret` — the secret paired with that token id.
-- `TF_VAR_proxmox_insecure` (optional) — `true` to skip TLS verification on a
+- `PROXMOX_ENDPOINT` — for example `https://proxmox.local:8006/api2/json`.
+- `PROXMOX_TOKEN_ID` — for example `ansible@pve!proxmox-compose`.
+- `PROXMOX_TOKEN_SECRET` — the secret paired with that token id.
+- `PROXMOX_INSECURE` (optional) — `true` to skip TLS verification on a
   homelab CA.
+
+Legacy `TF_VAR_proxmox_*` names remain accepted for compatibility.
 
 Create a Proxmox API token (one-time):
 
 1. In the Proxmox UI: **Datacenter → Permissions → API Tokens → Add**.
-2. Pick a user (for example `terraform@pve`) and a token id
+2. Pick a user (for example `ansible@pve`) and a token id
    (for example `proxmox-compose`); copy the generated secret.
 3. Grant the user the privileges your workloads need (for example
    `PVEVMAdmin` on `/`, plus datastore/SDN roles as required).
@@ -92,8 +94,8 @@ Create a Proxmox API token (one-time):
 Migrating from password / OTP setups:
 
 - Remove any `proxmox_auth_method`, `proxmox_username`, or `proxmox_password`
-  values from `terraform.tfvars`, profile env, or shell exports.
-- Replace them with the `TF_VAR_proxmox_token_*` variables above.
+  values from profile env or shell exports.
+- Replace them with `PROXMOX_TOKEN_ID` and `PROXMOX_TOKEN_SECRET`.
 - Drop any `--prompt-proxmox-otp` flags from your scripts; OTP prompting and
   the `PROXMOX_VE_OTP` plumbing have been removed.
 
@@ -101,11 +103,11 @@ PCI passthrough note:
 
 - API tokens cannot perform some legacy PCI lookups. Prefer **Proxmox resource
   mappings** (Datacenter → Resource Mappings → PCI) and reference mapping ids
-  in Terraform; this keeps PCI passthrough compatible with token auth.
+  in your lifecycle module arguments; this keeps PCI passthrough compatible with token auth.
 
 ## Recommended Workflow
 
-1. Update desired infrastructure in `infra/terraform/environments/homelab`.
+1. Define hosts and metadata in `config/ansible/inventory/static.yml` and `host_vars/`.
 2. Run `proxmox-compose doctor --workspace .` to verify binaries/profile/files.
 3. Run `proxmox-compose plan --workspace .`.
 4. Run `proxmox-compose apply --workspace .`.
@@ -114,7 +116,7 @@ PCI passthrough note:
 
 ## Repository Layout
 
-- `infra/terraform/` - VM/LXC lifecycle and Terraform modules.
+- `config/ansible/playbooks/provision-infra.yml` - lifecycle reconciliation entrypoint.
 - `config/ansible/playbooks/` - orchestration playbooks.
 - `config/ansible/roles/` - reusable host/app roles.
 - `config/ansible/inventory/` - static + generated inventory.
@@ -166,8 +168,6 @@ Before pushing changes:
 
 ```bash
 proxmox-compose doctor --workspace .
-terraform fmt -check -recursive infra/terraform
-cd infra/terraform/environments/homelab && terraform init -backend=false && terraform validate
-cd ../../../..
+cd config/ansible && ansible-playbook -i inventory/static.yml playbooks/provision-infra.yml --syntax-check
 cd config/ansible && ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check
 ```

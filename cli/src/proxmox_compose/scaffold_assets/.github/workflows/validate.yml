@@ -1,4 +1,4 @@
-# Proxmox Compose scaffolded workspace — validate Terraform + Ansible at repo root.
+# Proxmox Compose scaffolded workspace — validate Ansible at repo root.
 name: validate
 
 on:
@@ -11,16 +11,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
-      - name: Terraform fmt
-        run: terraform fmt -check -recursive infra/terraform
-      - name: Terraform init and validate
-        run: |
-          cd infra/terraform/environments/homelab
-          terraform init -backend=false
-          terraform validate
-      - name: Ansible syntax check
+      - name: Ansible syntax check (provision-infra)
         run: |
           pip install ansible-core
+          cd config/ansible
+          ansible-playbook -i inventory/static.yml playbooks/provision-infra.yml --syntax-check
+      - name: Ansible syntax check (post-provision)
+        run: |
           cd config/ansible
           ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check

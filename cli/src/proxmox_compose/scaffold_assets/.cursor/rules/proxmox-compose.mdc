@@ -5,7 +5,7 @@ alwaysApply: true
 
 # Proxmox Compose Rule
 
-- Treat Terraform as source of truth for VM/LXC lifecycle.
+- Treat Ansible inventory and host/group vars as source of truth for VM/LXC lifecycle metadata.
 - Treat Ansible as source of truth for software and day-2 config.
 - Support Debian and Fedora VMs; support Debian-only LXCs.
 - Prefer VM deployment for Docker Compose workloads (for example Frigate).
@@ -13,7 +13,7 @@ alwaysApply: true
 - Optional Tailscale Serve/Funnel on VMs or LXCs: opt-in Ansible role `tailscale` (`tailscale_enable`, vault-backed `tailscale_authkey`, declarative `tailscale_serve`); unprivileged LXCs need host-side TUN — see `docs/tailscale-on-lxc.md`.
 - Never perform destructive Proxmox operations unless user explicitly requests it.
 - Keep inventory synced before running Ansible against provisioned resources.
-- Use `provision-existing` for brownfield hosts instead of forcing Terraform ownership.
+- Use `provision-existing` for brownfield hosts and `provision-infra`/`apply` for lifecycle reconciliation.
 - Prefer host_vars/group_vars patterns over hardcoded host-specific values in tracked files.
 - Keep examples public-safe (no private IPs, usernames, tokens, or personal paths).
 - For compose apps, support both git-based and inline `compose_file_content` approaches.

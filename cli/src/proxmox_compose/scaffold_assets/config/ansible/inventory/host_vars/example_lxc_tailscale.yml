@@ -9,6 +9,9 @@
 #   lxc_tun_enable: true
 #   lxc_apparmor_unconfined_enable: true
 #   lxc_host_config_restart: true
+#   lxc_host_config_vmid: 210
+#   lxc_host_config_node_name: pve
+#   lxc_host_config_node_addresses: { pve: 10.0.0.2 }
 # - Add tailscale_authkey to encrypted vault.yml (see group_vars/all/vault.example.yml).
 
 tailscale_enable: true

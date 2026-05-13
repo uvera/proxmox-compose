@@ -12,9 +12,8 @@ runner = CliRunner()
 
 def _workspace(tmp_path: Path) -> Path:
     ws = tmp_path / "repo"
-    (ws / "infra/terraform/environments/homelab").mkdir(parents=True)
-    (ws / "infra/terraform/environments/homelab/main.tf").write_text("module \"x\" {}")
     (ws / "config/ansible/playbooks").mkdir(parents=True)
+    (ws / "config/ansible/playbooks/provision-infra.yml").write_text("- hosts: localhost")
     (ws / "config/ansible/playbooks/post-provision.yml").write_text("- hosts: all")
     (ws / "config/ansible/inventory").mkdir(parents=True)
     (ws / "config/ansible/inventory/static.yml").write_text("all: {}")
@@ -28,10 +27,10 @@ def test_doctor_ok(monkeypatch, tmp_path: Path) -> None:
         """profiles:
   default:
     env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+      PROXMOX_ENDPOINT: https://proxmox.local:8006/api2/json
+      PROXMOX_TOKEN_ID: ansible@pve!proxmox-compose
     secret_env_commands:
-      TF_VAR_proxmox_token_secret: "python -c 'print(\\\"secret\\\")'"
+      PROXMOX_TOKEN_SECRET: "python -c 'print(\\\"secret\\\")'"
 """
     )
     monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
@@ -40,8 +39,8 @@ def test_doctor_ok(monkeypatch, tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
     assert result.exit_code == 0, result.output
-    assert "[ok] terraform" in result.output
-    assert "[ok] TF_VAR_proxmox_endpoint" in result.output
+    assert "[ok] ansible-playbook" in result.output
+    assert "[ok] PROXMOX_ENDPOINT" in result.output
     assert "Proxmox API token" in result.output
 
 
@@ -52,10 +51,10 @@ def test_doctor_fails_when_missing_binary(monkeypatch, tmp_path: Path) -> None:
         """profiles:
   default:
     env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+      PROXMOX_ENDPOINT: https://proxmox.local:8006/api2/json
+      PROXMOX_TOKEN_ID: ansible@pve!proxmox-compose
     secret_env_commands:
-      TF_VAR_proxmox_token_secret: "python -c 'print(\\\"secret\\\")'"
+      PROXMOX_TOKEN_SECRET: "python -c 'print(\\\"secret\\\")'"
 """
     )
     monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
@@ -63,12 +62,12 @@ def test_doctor_fails_when_missing_binary(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         doctor_module.shutil,
         "which",
-        lambda binary: None if binary == "terraform" else "/usr/bin/fake",
+        lambda binary: None if binary == "ansible-playbook" else "/usr/bin/fake",
     )
 
     result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
     assert result.exit_code == 1
-    assert "[missing] terraform" in result.output
+    assert "[missing] ansible-playbook" in result.output
 
 
 def test_doctor_ok_with_secret_token_command(monkeypatch, tmp_path: Path) -> None:
@@ -78,10 +77,10 @@ def test_doctor_ok_with_secret_token_command(monkeypatch, tmp_path: Path) -> Non
         """profiles:
   default:
     secret_env_commands:
-      TF_VAR_proxmox_token_secret: "pass homelab/proxmox_token_secret"
+      PROXMOX_TOKEN_SECRET: "pass homelab/proxmox_token_secret"
     env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+      PROXMOX_ENDPOINT: https://proxmox.local:8006/api2/json
+      PROXMOX_TOKEN_ID: ansible@pve!proxmox-compose
 """
     )
     monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
@@ -90,7 +89,29 @@ def test_doctor_ok_with_secret_token_command(monkeypatch, tmp_path: Path) -> Non
 
     result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
     assert result.exit_code == 0, result.output
-    assert "[ok] TF_VAR_proxmox_token_secret" in result.output
+    assert "[ok] PROXMOX_TOKEN_SECRET" in result.output
+
+
+def test_doctor_accepts_legacy_tf_var_profile_keys(monkeypatch, tmp_path: Path) -> None:
+    ws = _workspace(tmp_path)
+    profile_file = tmp_path / "profiles.yml"
+    profile_file.write_text(
+        """profiles:
+  default:
+    env:
+      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
+      TF_VAR_proxmox_token_id: terraform@pve!legacy
+    secret_env_commands:
+      TF_VAR_proxmox_token_secret: "python -c 'print(\\\"secret\\\")'"
+"""
+    )
+    monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
+    monkeypatch.setattr(profiles_module, "DEFAULT_PROFILE_FILE", profile_file)
+    monkeypatch.setattr(doctor_module.shutil, "which", lambda _: "/usr/bin/fake")
+
+    result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
+    assert result.exit_code == 0, result.output
+    assert "[ok] PROXMOX_ENDPOINT (via TF_VAR_proxmox_endpoint)" in result.output
 
 
 def test_doctor_fails_with_legacy_proxmox_auth_method(monkeypatch, tmp_path: Path) -> None:
@@ -101,10 +122,10 @@ def test_doctor_fails_with_legacy_proxmox_auth_method(monkeypatch, tmp_path: Pat
   default:
     proxmox_auth_method: ldap
     env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+      PROXMOX_ENDPOINT: https://proxmox.local:8006/api2/json
+      PROXMOX_TOKEN_ID: ansible@pve!proxmox-compose
     secret_env_commands:
-      TF_VAR_proxmox_token_secret: "python -c 'print(\\\"secret\\\")'"
+      PROXMOX_TOKEN_SECRET: "python -c 'print(\\\"secret\\\")'"
 """
     )
     monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
@@ -124,8 +145,8 @@ def test_doctor_fails_without_token_secret(monkeypatch, tmp_path: Path) -> None:
         """profiles:
   default:
     env:
-      TF_VAR_proxmox_endpoint: https://proxmox.local:8006/api2/json
-      TF_VAR_proxmox_token_id: terraform@pve!proxmox-compose
+      PROXMOX_ENDPOINT: https://proxmox.local:8006/api2/json
+      PROXMOX_TOKEN_ID: ansible@pve!proxmox-compose
 """
     )
     monkeypatch.setattr(doctor_module, "DEFAULT_PROFILE_FILE", profile_file)
@@ -134,4 +155,4 @@ def test_doctor_fails_without_token_secret(monkeypatch, tmp_path: Path) -> None:
 
     result = runner.invoke(app, ["doctor", "--workspace", str(ws)])
     assert result.exit_code == 1
-    assert "[missing] TF_VAR_proxmox_token_secret" in result.output
+    assert "[missing] PROXMOX_TOKEN_SECRET" in result.output

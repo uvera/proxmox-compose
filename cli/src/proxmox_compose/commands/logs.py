@@ -330,7 +330,7 @@ def logs_command(
         if not merged:
             empty_inv = (
                 "\n\nMerged inventory defines no hosts. Add entries under "
-                "config/ansible/inventory/static.yml (and/or Terraform outputs), then run:\n"
+                "config/ansible/inventory/static.yml or host_vars metadata, then run:\n"
                 f"  proxmox-compose inventory sync --workspace {workspace_r}"
             )
         raise typer.BadParameter(

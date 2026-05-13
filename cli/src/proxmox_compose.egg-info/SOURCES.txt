@@ -45,8 +45,10 @@ src/proxmox_compose/scaffold_assets/config/ansible/inventory/group_vars/all/vaul
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_existing_docker_vm.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_lxc_docker.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_lxc_tailscale.yml
+src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_provisioned_lxc.yml
 src/proxmox_compose/scaffold_assets/config/ansible/playbooks/post-provision.yml
 src/proxmox_compose/scaffold_assets/config/ansible/playbooks/provision-existing.yml
+src/proxmox_compose/scaffold_assets/config/ansible/playbooks/provision-infra.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/common/defaults/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/common/tasks/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app/defaults/main.yml
@@ -62,6 +64,8 @@ src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/def
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/handlers/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/tasks/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/lxc_systemd_service/templates/service.j2
+src/proxmox_compose/scaffold_assets/config/ansible/roles/proxmox_lifecycle/defaults/main.yml
+src/proxmox_compose/scaffold_assets/config/ansible/roles/proxmox_lifecycle/tasks/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/defaults/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/files/reconcile_serve.py
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/files/__pycache__/reconcile_serve.cpython-314.pyc
@@ -69,8 +73,10 @@ src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/handlers/main
 src/proxmox_compose/scaffold_assets/config/ansible/roles/tailscale/tasks/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/vm_docker/defaults/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/roles/vm_docker/tasks/main.yml
+src/proxmox_compose/scaffold_assets/docs/ansible-infra-model.md
 src/proxmox_compose/scaffold_assets/docs/lxc-docker-compose.md
 src/proxmox_compose/scaffold_assets/docs/lxc-service-onboarding.md
+src/proxmox_compose/scaffold_assets/docs/migrate-from-terraform.md
 src/proxmox_compose/scaffold_assets/docs/secrets-and-ci.md
 src/proxmox_compose/scaffold_assets/docs/service-onboarding.md
 src/proxmox_compose/scaffold_assets/docs/tailscale-on-lxc.md
@@ -95,6 +101,7 @@ tests/test_ansible_vault_password.py
 tests/test_apply.py
 tests/test_doctor.py
 tests/test_init.py
+tests/test_inventory.py
 tests/test_logs.py
 tests/test_logs_targets.py
 tests/test_profiles.py

@@ -11,12 +11,12 @@ from proxmox_compose.profiles import (
     get_proxmox_auth_method,
 )
 
-REQUIRED_BINARIES = ["terraform", "ansible-playbook", "git"]
+REQUIRED_BINARIES = ["ansible-playbook", "git"]
 
-REQUIRED_PROXMOX_ENV_KEYS = [
-    "TF_VAR_proxmox_endpoint",
-    "TF_VAR_proxmox_token_id",
-    "TF_VAR_proxmox_token_secret",
+REQUIRED_PROXMOX_ENV_KEY_ALIASES = [
+    ("PROXMOX_ENDPOINT", "TF_VAR_proxmox_endpoint"),
+    ("PROXMOX_TOKEN_ID", "TF_VAR_proxmox_token_id"),
+    ("PROXMOX_TOKEN_SECRET", "TF_VAR_proxmox_token_secret"),
 ]
 
 
@@ -35,12 +35,18 @@ def _profile_checks(profile: str) -> tuple[list[str], list[str], bool]:
     profile_data = get_profile(profile)
     env_vars = profile_data.get("env", {})
     secret_env_commands = get_profile_secret_env_commands(profile)
-    missing = [
-        key
-        for key in REQUIRED_PROXMOX_ENV_KEYS
-        if not env_vars.get(key) and not secret_env_commands.get(key)
-    ]
-    ok = [key for key in REQUIRED_PROXMOX_ENV_KEYS if key not in missing]
+    ok: list[str] = []
+    missing: list[str] = []
+    for primary_key, fallback_key in REQUIRED_PROXMOX_ENV_KEY_ALIASES:
+        has_primary = env_vars.get(primary_key) or secret_env_commands.get(primary_key)
+        has_fallback = env_vars.get(fallback_key) or secret_env_commands.get(fallback_key)
+        if has_primary or has_fallback:
+            if has_primary:
+                ok.append(primary_key)
+            else:
+                ok.append(f"{primary_key} (via {fallback_key})")
+            continue
+        missing.append(primary_key)
     return ok, missing, bool(profile_data)
 
 
@@ -103,7 +109,7 @@ def doctor_command(
             missing_vars.append("ssh_key_path")
 
     required_paths = [
-        workspace / "infra/terraform/environments/homelab/main.tf",
+        workspace / "config/ansible/playbooks/provision-infra.yml",
         workspace / "config/ansible/playbooks/post-provision.yml",
         workspace / "config/ansible/inventory/static.yml",
     ]

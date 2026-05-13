@@ -1,0 +1,14 @@
+---
+# Declarative lifecycle definitions consumed by role proxmox_lifecycle.
+# Each entry should provide `module_args` passed to the underlying Proxmox module.
+proxmox_lifecycle_vms: []
+proxmox_lifecycle_lxcs: []
+
+# Safety guard: only allow delete actions when explicitly enabled.
+proxmox_lifecycle_allow_absent: false
+
+# Auth defaults from profile env; Terraform env names remain accepted for migration.
+proxmox_lifecycle_api_host: "{{ lookup('env', 'PROXMOX_ENDPOINT') | default(lookup('env', 'TF_VAR_proxmox_endpoint'), true) }}"
+proxmox_lifecycle_api_token_id: "{{ lookup('env', 'PROXMOX_TOKEN_ID') | default(lookup('env', 'TF_VAR_proxmox_token_id'), true) }}"
+proxmox_lifecycle_api_token_secret: "{{ lookup('env', 'PROXMOX_TOKEN_SECRET') | default(lookup('env', 'TF_VAR_proxmox_token_secret'), true) }}"
+proxmox_lifecycle_validate_certs: "{{ (lookup('env', 'PROXMOX_INSECURE') | default(lookup('env', 'TF_VAR_proxmox_insecure'), true) | lower) not in ['1', 'true', 'yes'] }}"

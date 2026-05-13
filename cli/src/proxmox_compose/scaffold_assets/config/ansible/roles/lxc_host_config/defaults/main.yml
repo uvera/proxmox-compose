@@ -1,6 +1,6 @@
 ---
 # Opt-in: apply Proxmox host-side /etc/pve/lxc/<vmid>.conf lines over SSH from the Ansible controller.
-# The role can discover VMID/node data from terraform output, or use inventory overrides.
+# The role reads VMID/node metadata from inventory vars.
 
 lxc_host_config_enable: false
 lxc_host_config_restart: false
@@ -18,7 +18,9 @@ lxc_host_config_ssh_private_key_file: ""
 # Optional shared map override for node_name -> SSH target hostname/IP.
 lxc_host_config_node_addresses: {}
 
-# Optional terraform output directory used to auto-discover LXC and node metadata.
+# Optional compatibility mode: read Terraform outputs for metadata fallback.
+# Keep disabled for Ansible-first workflows.
+lxc_host_config_read_terraform_outputs: false
 lxc_host_config_tf_output_dir: "{{ playbook_dir }}/../../../infra/terraform/environments/homelab"
 lxc_host_config_ssh_strict_host_key_checking: accept-new
 

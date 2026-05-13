@@ -36,6 +36,7 @@
   failed_when: false
   delegate_to: localhost
   run_once: true
+  when: lxc_host_config_read_terraform_outputs | bool
 
 - name: Parse terraform output maps for host metadata
   ansible.builtin.set_fact:
@@ -51,6 +52,7 @@
   delegate_to: localhost
   delegate_facts: true
   run_once: true
+  when: lxc_host_config_read_terraform_outputs | bool
 
 - name: Extract terraform host metadata maps
   ansible.builtin.set_fact:
@@ -60,6 +62,17 @@
   delegate_to: localhost
   delegate_facts: true
   run_once: true
+  when: lxc_host_config_read_terraform_outputs | bool
+
+- name: Initialize empty terraform metadata maps when compatibility mode disabled
+  ansible.builtin.set_fact:
+    lxc_host_config_tf_debian_lxcs: {}
+    lxc_host_config_tf_node_addresses: {}
+    lxc_host_config_tf_ssh_user: ""
+  delegate_to: localhost
+  delegate_facts: true
+  run_once: true
+  when: not (lxc_host_config_read_terraform_outputs | bool)
 
 - name: Resolve host-specific metadata for Proxmox SSH patching
   ansible.builtin.set_fact:
@@ -146,7 +159,8 @@
     fail_msg: >-
       Missing metadata for {{ inventory_hostname }}. Set lxc_host_config_vmid and node target vars
       (lxc_host_config_node_address or lxc_host_config_node_name + lxc_host_config_node_addresses),
-      or ensure terraform outputs are available at {{ lxc_host_config_tf_output_dir }}.
+      or enable lxc_host_config_read_terraform_outputs with valid terraform outputs at
+      {{ lxc_host_config_tf_output_dir }}.
 
 - name: Ensure bind-mount source directories exist on Proxmox node
   vars:

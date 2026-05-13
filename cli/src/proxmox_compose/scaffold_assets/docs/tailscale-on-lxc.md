@@ -28,7 +28,7 @@ Scaffold support:
 
 ## 2. Kernel TUN inside an unprivileged LXC
 
-Tailscale on Linux expects a working **`/dev/net/tun`**. Unprivileged Proxmox LXCs do **not** get TUN by default. The Terraform provider used in this scaffold does **not** expose `lxc.cgroup2.devices.allow` or `lxc.mount.entry`, so this is a **one-time change on each Proxmox node** (same idea as the AppArmor note in [lxc-docker-compose.md](lxc-docker-compose.md)).
+Tailscale on Linux expects a working **`/dev/net/tun`**. Unprivileged Proxmox LXCs do **not** get TUN by default. This scaffold manages those host-side CT config lines through role `lxc_host_config`, or you can apply the same change manually on each Proxmox node (same idea as the AppArmor note in [lxc-docker-compose.md](lxc-docker-compose.md)).
 
 ### Deployment-integrated hypervisor automation (optional)
 

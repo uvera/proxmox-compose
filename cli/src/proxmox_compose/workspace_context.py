@@ -21,6 +21,10 @@ class WorkspacePaths:
         return self.workspace / "config/ansible/playbooks/post-provision.yml"
 
     @property
+    def provision_infra_playbook(self) -> Path:
+        return self.workspace / "config/ansible/playbooks/provision-infra.yml"
+
+    @property
     def provision_existing_playbook(self) -> Path:
         return self.workspace / "config/ansible/playbooks/provision-existing.yml"
 

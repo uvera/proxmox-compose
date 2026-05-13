@@ -4,11 +4,11 @@ This git repository is the **`proxmox-compose` CLI** and embedded scaffold templ
 
 ## Maintaining this CLI repository
 1. Edit Python under `cli/src/proxmox_compose/`.
-2. Edit Terraform/Ansible/docs templates under `cli/src/proxmox_compose/scaffold_assets/` (see `.cursor/rules/scaffold-sync.mdc`).
-3. Run `PYTHONPATH=cli/src pytest cli/tests` and Terraform/Ansible checks against the scaffold tree (see `docs/secrets-and-ci.md` or `.github/workflows/validate.yml`).
+2. Edit scaffold templates under `cli/src/proxmox_compose/scaffold_assets/` (see `.cursor/rules/scaffold-sync.mdc`).
+3. Run `PYTHONPATH=cli/src pytest cli/tests` and Ansible syntax checks against the scaffold tree.
 
 ## Core workflow (in a provisioned workspace)
-1. Update desired infra in `infra/terraform/environments/homelab`.
+1. Define hosts and lifecycle metadata in `config/ansible/inventory/static.yml` and `host_vars/`.
 2. Run `proxmox-compose doctor`.
 3. Run `proxmox-compose plan`.
 4. Run `proxmox-compose apply`.
@@ -21,7 +21,7 @@ This git repository is the **`proxmox-compose` CLI** and embedded scaffold templ
 - Stateful native services on LXCs often use `lxc_systemd_service`; Compose stacks can use `lxc_docker`.
 
 ## Decision Matrix
-- **Create/delete/resize VM or LXC**: use Terraform (`infra/terraform/**`).
+- **Create/update VM or LXC lifecycle**: use `config/ansible/playbooks/provision-infra.yml` via `proxmox-compose apply`.
 - **Install packages/users/services on existing machine**: use Ansible roles/playbooks.
 - **Deploy/update Docker Compose app on VM**: use `vm_docker` + `deploy_git_app`.
 - **Deploy/update Docker Compose app on Debian LXC**: use `lxc_docker` + `lxc_compose_apps` (see scaffold `docs/lxc-docker-compose.md`).
@@ -54,15 +54,13 @@ This git repository is the **`proxmox-compose` CLI** and embedded scaffold templ
 - Run `proxmox-compose doctor` before plan/apply (in a provisioned workspace).
 - For Python changes in this repo: `PYTHONPATH=cli/src pytest cli/tests`.
 - For Ansible template changes: syntax check from `cli/src/proxmox_compose/scaffold_assets/config/ansible`.
-- For Terraform template changes: `terraform fmt` / `terraform validate` on `cli/src/proxmox_compose/scaffold_assets/infra/terraform`.
 
 ## Troubleshooting Playbook
 - **Doctor fails**: install missing binary or profile vars.
 - **Ansible role not found**: run from `config/ansible` and ensure `roles_path = ./roles`.
-- **Terraform provider mismatch**: ensure modules declare `required_providers` (`bpg/proxmox`).
 - **Inventory drift**: run `proxmox-compose inventory sync`.
 
 ## Where To Extend
-- Add new VM/LXC shape: `cli/src/proxmox_compose/scaffold_assets/infra/terraform/modules` (and generated repos: `infra/terraform/modules`).
+- Add lifecycle behaviors: `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/proxmox_lifecycle`.
 - Add host config: `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles` (generated: `config/ansible/roles`).
 - Add app rollouts: `cli/src/proxmox_compose/scaffold_assets/config/ansible/roles/deploy_git_app`.

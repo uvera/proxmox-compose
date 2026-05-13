@@ -3,7 +3,7 @@
 This repository uses `proxmox-compose` as the primary interface.
 
 ## Core Workflow
-1. Update desired infra in `infra/terraform/environments/homelab`.
+1. Define hosts and lifecycle metadata in `config/ansible/inventory/static.yml` and `host_vars/`.
 2. Run `proxmox-compose doctor`.
 3. Run `proxmox-compose plan`.
 4. Run `proxmox-compose apply`.
@@ -16,10 +16,10 @@ This repository uses `proxmox-compose` as the primary interface.
 - Stateful services on LXCs should run under systemd units.
 
 ## Decision Matrix
-- **Create/delete/resize VM or LXC**: use Terraform (`infra/terraform/**`).
+- **Create/update VM or LXC lifecycle**: use `provision-infra.yml` via `proxmox-compose apply`.
 - **Install packages/users/services on existing machine**: use Ansible roles/playbooks.
 - **Deploy/update Docker Compose app on VM**: use `vm_docker` + `deploy_git_app`.
-- **Deploy/update Docker Compose app on Debian LXC**: use `lxc_docker` + `lxc_compose_apps` (same keys as `vm_compose_apps`). Ensure nesting (Terraform) and apply Proxmox host AppArmor workaround if Docker fails (`docs/lxc-docker-compose.md`).
+- **Deploy/update Docker Compose app on Debian LXC**: use `lxc_docker` + `lxc_compose_apps` (same keys as `vm_compose_apps`). Apply Proxmox host AppArmor workaround if Docker fails (`docs/lxc-docker-compose.md`).
 - **Deploy/update non-Docker app in Debian LXC**: use `lxc_systemd_service`.
 - **Manage pre-existing infrastructure**: inventory in `existing_hosts` / `existing_docker_vms` + `provision-existing`.
 - **Inject secrets (`.env`, keys, tokens)**: Ansible Vault values consumed by host/group vars.
@@ -49,15 +49,13 @@ This repository uses `proxmox-compose` as the primary interface.
 - Run `proxmox-compose doctor` before plan/apply.
 - For Python changes: run `pytest` and compile checks.
 - For Ansible changes: run syntax check from `config/ansible`.
-- For Terraform changes: run `terraform fmt`, `terraform init -backend=false`, `terraform validate`.
 
 ## Troubleshooting Playbook
 - **Doctor fails**: install missing binary or profile vars.
 - **Ansible role not found**: run from `config/ansible` and ensure `roles_path = ./roles`.
-- **Terraform provider mismatch**: ensure modules declare `required_providers` (`bpg/proxmox`).
 - **Inventory drift**: run `proxmox-compose inventory sync`.
 
 ## Where To Extend
-- Add new VM/LXC shape: `infra/terraform/modules`.
+- Add lifecycle behaviors: `config/ansible/roles/proxmox_lifecycle`.
 - Add host config: `config/ansible/roles`.
 - Add app rollouts: `config/ansible/roles/deploy_git_app`.

@@ -24,10 +24,10 @@ def _bootstrap_profiles() -> None:
                 "ssh_key_path": None,
                 "secret_env_commands": {},
                 "env": {
-                    "TF_VAR_proxmox_endpoint": "https://proxmox.local:8006/api2/json",
-                    "TF_VAR_proxmox_token_id": "terraform@pve!proxmox-compose",
-                    "TF_VAR_proxmox_token_secret": "change-me",
-                    "TF_VAR_proxmox_insecure": "true",
+                    "PROXMOX_ENDPOINT": "https://proxmox.local:8006/api2/json",
+                    "PROXMOX_TOKEN_ID": "ansible@pve!proxmox-compose",
+                    "PROXMOX_TOKEN_SECRET": "change-me",
+                    "PROXMOX_INSECURE": "true",
                 }
             }
         }

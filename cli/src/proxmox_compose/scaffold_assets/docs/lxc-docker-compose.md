@@ -2,15 +2,15 @@
 
 Use this path when you want **Docker Compose on an unprivileged Debian LXC** instead of a VM or instead of native systemd services (`lxc_systemd_service`).
 
-## 1. Proxmox / Terraform
+## 1. Proxmox lifecycle metadata
 
-- **Nesting** — Required for Docker inside LXC. The scaffold `lxc-debian` module sets `features.nesting = true` by default.
-- **Optional features** — If an image or runtime needs them, set per-LXC in Terraform (`debian_lxcs` entries):
-  - `lxc_features_fuse: true` — FUSE inside the CT (some stacks need it).
-  - `lxc_features_keyctl: true` — Rare; only if something explicitly requires `keyctl`.
-- **Lifecycle note** — The module uses `lifecycle { ignore_changes = [features] }` so existing CTs keep working when API tokens cannot change feature flags. New CTs still get the declared flags at create time.
+- **Nesting** — Required for Docker inside LXC. Set the corresponding Proxmox module args in `proxmox_lifecycle_lxcs`.
+- **Optional features** — If an image or runtime needs them, set per-LXC module args:
+  - `features.nesting: true` (recommended for Docker)
+  - `features.fuse: true` (when required by workload)
+  - `features.keyctl: true` (rare, only when explicitly needed)
 
-The [bpg/proxmox](https://registry.terraform.io/providers/bpg/proxmox/latest/docs/resources/virtual_environment_container) provider does **not** expose `lxc.apparmor.profile` or raw `/etc/pve/lxc/<vmid>.conf` lines. Those are applied on the **Proxmox host**, not from Terraform in this scaffold.
+Raw `/etc/pve/lxc/<vmid>.conf` lines (AppArmor/TUN tweaks) are applied on the **Proxmox host** through role `lxc_host_config`.
 
 ## 2. AppArmor / runc (CVE-2025-52881)
 
@@ -36,8 +36,7 @@ Recent `runc` / `containerd` updates can break Docker/Podman **inside** Proxmox 
 
 During **`proxmox-compose apply`** and **`proxmox-compose provision-existing`**, the **`lxc_host_config`** role can apply the same `/etc/pve/lxc/<vmid>.conf` lines by SSH’ing from the Ansible **controller** to the Proxmox node (the profile **`ssh_key_path`** is passed as `ansible-playbook --private-key`, same as guest runs).
 
-1. Ensure **Terraform outputs** are available under `infra/terraform/environments/homelab` so the role can discover `debian_lxcs`, `proxmox_node_addresses`, and `proxmox_ssh_username` automatically.
-2. In `host_vars` or `group_vars`, set for example:
+1. In `host_vars` or `group_vars`, set for example:
 
    ```yaml
    lxc_host_config_enable: true
@@ -48,17 +47,20 @@ During **`proxmox-compose apply`** and **`proxmox-compose provision-existing`**,
    # lxc_apparmor_ubuntu_mask_enable: true
    ```
 
+2. Provide host metadata in inventory vars (recommended):
+   - `lxc_host_config_vmid`
+   - `lxc_host_config_node_name`
+   - `lxc_host_config_node_addresses`
+   - optional `lxc_host_config_ssh_user` / `lxc_host_config_ssh_private_key_file`
 3. Re-run **`proxmox-compose apply`** or **`proxmox-compose provision-existing`**.
 
-For brownfield LXCs that are **not** in Terraform, set **`lxc_host_config_vmid`** and either
-**`lxc_host_config_node_address`** or (**`lxc_host_config_node_name`** + `lxc_host_config_node_addresses`)
-plus optional **`lxc_host_config_ssh_user`**.
+Optional compatibility fallback: set `lxc_host_config_read_terraform_outputs: true` to read metadata from legacy Terraform outputs.
 
 ## 3. Ansible: git / inline Compose on the LXC
 
 Same variable shape as VM Compose (`vm_compose_apps`), but use **`lxc_compose_apps`** in host vars (or group vars) for LXCs.
 
-1. Ensure the host is in inventory group `debian_lxcs` (Terraform sync / static inventory).
+1. Ensure the host is in inventory group `debian_lxcs` (from static inventory or host_vars metadata).
 2. Create `config/ansible/inventory/host_vars/<host>.yml` — see `inventory/host_vars/example_lxc_docker.yml`.
 3. Set `lxc_compose_apps` with `repo` + `dest`, or `compose_file_content`, optional `env_content`, etc. (identical keys to `example_existing_docker_vm.yml`).
 4. Optional: `lxc_docker_enable: true` installs Docker even when `lxc_compose_apps` is empty (manual compose projects).

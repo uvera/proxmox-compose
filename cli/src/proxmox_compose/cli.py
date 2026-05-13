@@ -14,7 +14,7 @@ from proxmox_compose.commands.vault import vault_app
 app = Typer(
     name="proxmox-compose",
     no_args_is_help=True,
-    help="Provision and configure Proxmox infrastructure with Terraform + Ansible.",
+    help="Provision and configure Proxmox infrastructure with Ansible.",
 )
 
 app.command("init")(init_command)

@@ -6,7 +6,7 @@ alwaysApply: true
 # Generalization And Reusability
 
 - Default to reusable role/module changes over one-off host-specific edits.
-- Keep core logic in shared Terraform modules and Ansible roles; keep per-host values in `host_vars`/`group_vars`.
+- Keep core logic in shared Ansible roles/playbooks; keep per-host values in `host_vars`/`group_vars`.
 - Avoid embedding environment-specific names, IPs, usernames, domains, paths, or IDs in reusable templates/tasks.
 - Add optional variables with safe defaults instead of hardcoding behavior for a single workload.
 - Keep examples generic and copy-paste friendly for future projects.
