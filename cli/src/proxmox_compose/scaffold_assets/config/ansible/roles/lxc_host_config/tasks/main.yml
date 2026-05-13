@@ -13,15 +13,29 @@
         + ([] if not (lxc_tun_enable | bool) else [lxc_host_config_line_tun_cgroup, lxc_host_config_line_tun_mount])
         + (lxc_host_config_extra_lines | default([]))
       }}
+    _lxc_host_config_firewall_enable: "{{ lxc_host_config_firewall_enable | default(false) | bool }}"
+    _lxc_host_config_firewall_options: "{{ lxc_host_config_firewall_options | default(['enable: 1']) }}"
+    _lxc_host_config_firewall_rules: "{{ lxc_host_config_firewall_rules | default([]) }}"
 
 - name: Require at least one host-config line when role is enabled
   ansible.builtin.assert:
     that:
-      - (_lxc_host_config_lines | length) > 0
+      - (_lxc_host_config_lines | length) > 0 or _lxc_host_config_firewall_enable
     fail_msg: >-
-      lxc_host_config_enable is true but no CT config lines were produced. Enable one or more of:
+      lxc_host_config_enable is true but no CT config lines or firewall config were produced.
+      Enable one or more of:
       lxc_apparmor_unconfined_enable, lxc_apparmor_ubuntu_mask_enable, lxc_tun_enable,
-      or set lxc_host_config_extra_lines (e.g. mp0/mp1 bind mounts).
+      set lxc_host_config_extra_lines (e.g. mp0/mp1 bind mounts),
+      or enable firewall management with lxc_host_config_firewall_enable.
+
+- name: Require at least one firewall rule when firewall management is enabled
+  ansible.builtin.assert:
+    that:
+      - (_lxc_host_config_firewall_rules | length) > 0
+    fail_msg: >-
+      lxc_host_config_firewall_enable is true but no rules were defined in
+      lxc_host_config_firewall_rules.
+  when: _lxc_host_config_firewall_enable
 
 - name: Resolve host-specific metadata for Proxmox SSH patching
   ansible.builtin.set_fact:
@@ -255,6 +269,44 @@
   loop_control:
     label: "{{ item }}"
   when: (_lxc_host_config_conf_exists.rc | int) == 0
+
+- name: Ensure CT firewall file present on Proxmox node
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+    _firewall_program: |
+      from pathlib import Path
+      import sys
+
+      firewall_path = Path(sys.argv[1])
+      options = {{ _lxc_host_config_firewall_options | to_json }}
+      rules = {{ _lxc_host_config_firewall_rules | to_json }}
+
+      desired_lines = ["[OPTIONS]"] + options + ["", "[RULES]"] + rules + [""]
+      desired_content = "\n".join(desired_lines)
+      current_content = ""
+      if firewall_path.exists():
+          current_content = firewall_path.read_text(encoding="utf-8")
+      if current_content != desired_content:
+          firewall_path.write_text(desired_content, encoding="utf-8")
+          print("changed")
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['python3', '-', '/etc/pve/firewall/' ~ (_lxc_host_config_vmid | string) ~ '.fw'] }}"
+    stdin: "{{ _firewall_program }}"
+  register: _lxc_host_config_firewall
+  changed_when: "'changed' in (_lxc_host_config_firewall.stdout | default(''))"
+  when:
+    - (_lxc_host_config_conf_exists.rc | int) == 0
+    - _lxc_host_config_firewall_enable
 
 - name: Restart CT on hypervisor when its config changed and restart is allowed
   vars:

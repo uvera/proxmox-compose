@@ -32,6 +32,12 @@ lxc_host_config_ensure_host_dirs_owner: ""
 lxc_host_config_ensure_host_dirs_group: ""
 lxc_host_config_ensure_host_dirs_mode: ""
 
+# Optional: manage Proxmox CT firewall file /etc/pve/firewall/<vmid>.fw over SSH.
+lxc_host_config_firewall_enable: false
+lxc_host_config_firewall_options:
+  - "enable: 1"
+lxc_host_config_firewall_rules: []
+
 lxc_host_config_line_apparmor_unconfined: "lxc.apparmor.profile: unconfined"
 lxc_host_config_line_apparmor_ubuntu_mask: "lxc.mount.entry: /dev/null sys/module/apparmor/parameters/enabled none bind 0 0"
 lxc_host_config_line_tun_cgroup: "lxc.cgroup2.devices.allow: c 10:200 rwm"
