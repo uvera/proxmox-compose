@@ -174,11 +174,13 @@
   ansible.builtin.assert:
     that:
       - item.1.content is defined or item.1.src is defined
+    quiet: true
     fail_msg: >-
       managed_files entry for {{ item.1.dest }} must define either `content` or `src`.
   loop: "{{ deploy_git_apps | default([]) | subelements('managed_files', skip_missing=true) }}"
   loop_control:
     label: "{{ item.1.dest }}"
+  no_log: "{{ item.1.secret | default(false) }}"
 
 - name: Write managed files for app stacks (inline content)
   ansible.builtin.copy:

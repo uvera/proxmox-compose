@@ -149,6 +149,7 @@
         | join(''))
       or 'installed' in (lxc_go_toolchain_results.stdout | default(''))
     )
+  no_log: true
 
 - name: Go build install for LXC git apps
   ansible.builtin.shell: |
@@ -189,6 +190,7 @@
         | join(''))
       or 'rebuilt' in (lxc_go_build_results.stdout | default(''))
     )
+  no_log: true
   notify: Restart LXC services
 
 - name: Ensure local Go binary is available
@@ -223,6 +225,7 @@
     - item.go_install_path is defined
   register: lxc_go_git_head_results
   changed_when: false
+  no_log: true
 
 - name: Sync local source checkouts for Go builds
   ansible.builtin.git:
@@ -238,6 +241,7 @@
   when:
     - lxc_go_build_local | bool
     - not (item.skipped | default(false))
+  no_log: true
 
 - name: Build Go binaries locally for LXC git apps
   ansible.builtin.command: >-
@@ -273,6 +277,7 @@
   when:
     - lxc_go_build_local | bool
     - not (item.skipped | default(false))
+  no_log: true
 
 - name: Install locally built Go binaries on LXC
   ansible.builtin.copy:
@@ -297,6 +302,7 @@
   when:
     - lxc_go_build_local | bool
     - not (item.skipped | default(false))
+  no_log: true
   notify: Restart LXC services
 
 - name: Ensure Python app runtime users exist
