@@ -57,6 +57,7 @@
   loop: "{{ _proxmox_lifecycle_vms }}"
   loop_control:
     label: "{{ item.name | default(item.module_args.name | default('vm')) }}"
+  no_log: true
 
 - name: Reconcile LXCs with community.general.proxmox
   community.general.proxmox:
@@ -69,3 +70,4 @@
   loop: "{{ _proxmox_lifecycle_lxcs }}"
   loop_control:
     label: "{{ item.name | default(item.module_args.hostname | default('lxc')) }}"
+  no_log: true

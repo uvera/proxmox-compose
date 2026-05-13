@@ -387,6 +387,7 @@
     - item.migrate | default(false)
     - item.environment_file is defined
   changed_when: false
+  no_log: true
 
 - name: Ensure runtime data directories exist
   ansible.builtin.file:
