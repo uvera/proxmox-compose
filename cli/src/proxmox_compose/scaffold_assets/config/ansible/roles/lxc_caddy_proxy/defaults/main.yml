@@ -1,0 +1,8 @@
+---
+lxc_caddy_proxy_enable: false
+lxc_caddy_proxy_package_name: caddy
+lxc_caddy_proxy_server_name: ""
+lxc_caddy_proxy_upstream: ""
+lxc_caddy_proxy_upstream_tls: true
+lxc_caddy_proxy_upstream_tls_insecure_skip_verify: false
+lxc_caddy_proxy_run_as_root: true

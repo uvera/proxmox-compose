@@ -21,6 +21,13 @@
   roles:
     - role: tailscale
 
+- name: Configure Caddy reverse proxy on Debian LXCs
+  hosts: debian_lxcs
+  become: true
+  ignore_unreachable: true
+  roles:
+    - role: lxc_caddy_proxy
+
 - name: Configure Docker workloads on VMs
   hosts: debian_vms:fedora_vms
   become: true

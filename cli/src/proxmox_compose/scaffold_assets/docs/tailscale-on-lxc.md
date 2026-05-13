@@ -80,7 +80,39 @@ Typical pattern:
 
 If you bind the workload only to `127.0.0.1` in Compose, ensure that port matches `tailscale_serve` → `target`.
 
-## 5. Further reading
+## 5. Caddy reverse proxy pattern (Proxmox UI example)
+
+If you need behavior outside `tailscale_serve` (for example proxying to an upstream HTTPS endpoint with
+`tls_insecure_skip_verify`), run Caddy on the LXC and keep Tailscale for tailnet identity/connectivity.
+
+This scaffold includes role `lxc_caddy_proxy` (wired in `post-provision.yml` for `debian_lxcs`) with
+host-vars driven config:
+
+```yaml
+lxc_caddy_proxy_enable: true
+lxc_caddy_proxy_server_name: proxmox.example.ts.net
+lxc_caddy_proxy_upstream: 10.0.0.2:8006
+lxc_caddy_proxy_upstream_tls: true
+lxc_caddy_proxy_upstream_tls_insecure_skip_verify: true
+```
+
+Rendered `Caddyfile` shape:
+
+```text
+proxmox.example.ts.net {
+    reverse_proxy 10.0.0.2:8006 {
+        transport http {
+            tls
+            tls_insecure_skip_verify
+        }
+    }
+}
+```
+
+Use this when you want explicit Caddy reverse-proxy behavior while still managing TUN/Tailscale declaratively
+in LXC host vars.
+
+## 6. Further reading
 
 - [Tailscale Serve (CLI)](https://tailscale.com/kb/1242/tailscale-serve/)
 - [Tailscale Funnel](https://tailscale.com/kb/1223/tailscale-funnel/)

@@ -1,0 +1,12 @@
+{{ lxc_caddy_proxy_server_name }} {
+    reverse_proxy {{ lxc_caddy_proxy_upstream }} {
+{% if lxc_caddy_proxy_upstream_tls | bool %}
+        transport http {
+            tls
+{% if lxc_caddy_proxy_upstream_tls_insecure_skip_verify | bool %}
+            tls_insecure_skip_verify
+{% endif %}
+        }
+{% endif %}
+    }
+}

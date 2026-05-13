@@ -1,0 +1,52 @@
+---
+- name: Configure Caddy reverse proxy on LXC
+  when: lxc_caddy_proxy_enable | bool
+  block:
+    - name: Require Caddy proxy host variables
+      ansible.builtin.assert:
+        that:
+          - (lxc_caddy_proxy_server_name | default('') | string | length) > 0
+          - (lxc_caddy_proxy_upstream | default('') | string | length) > 0
+        fail_msg: >-
+          Set lxc_caddy_proxy_server_name and lxc_caddy_proxy_upstream when
+          lxc_caddy_proxy_enable is true.
+
+    - name: Ensure Caddy is installed
+      ansible.builtin.package:
+        name: "{{ lxc_caddy_proxy_package_name }}"
+        state: present
+
+    - name: Write Caddyfile reverse proxy configuration
+      ansible.builtin.template:
+        src: Caddyfile.j2
+        dest: /etc/caddy/Caddyfile
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart caddy
+
+    - name: Ensure caddy service override directory exists
+      ansible.builtin.file:
+        path: /etc/systemd/system/caddy.service.d
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Allow Caddy to access Tailscale cert manager
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/caddy.service.d/override.conf
+        owner: root
+        group: root
+        mode: "0644"
+        content: |
+          [Service]
+          User={{ 'root' if (lxc_caddy_proxy_run_as_root | bool) else 'caddy' }}
+          Group={{ 'root' if (lxc_caddy_proxy_run_as_root | bool) else 'caddy' }}
+      notify: Restart caddy
+
+    - name: Ensure Caddy service is enabled and running
+      ansible.builtin.service:
+        name: caddy
+        enabled: true
+        state: started
