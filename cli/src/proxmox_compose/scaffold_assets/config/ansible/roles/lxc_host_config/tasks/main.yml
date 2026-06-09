@@ -195,6 +195,82 @@
     label: "{{ item }}"
   when: (lxc_host_config_ensure_host_dirs | default([]) | length) > 0
 
+- name: Ensure udev rules present on Proxmox node
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+    _udev_rule_program: |
+      from pathlib import Path
+      import sys
+
+      rule_path = Path(sys.argv[1])
+      desired = {{ item.content | to_json }}
+      current = ""
+      if rule_path.exists():
+          current = rule_path.read_text(encoding="utf-8")
+      if current != desired:
+          rule_path.parent.mkdir(parents=True, exist_ok=True)
+          rule_path.write_text(desired, encoding="utf-8")
+          print("changed")
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['python3', '-', '/etc/udev/rules.d/' ~ item.name] }}"
+    stdin: "{{ _udev_rule_program }}"
+  register: _lxc_host_config_udev_rule
+  changed_when: "'changed' in (_lxc_host_config_udev_rule.stdout | default(''))"
+  loop: "{{ lxc_host_config_udev_rules | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: (lxc_host_config_udev_rules | default([]) | length) > 0
+
+- name: Reload udev rules on Proxmox node when rules changed
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['udevadm', 'control', '--reload-rules'] }}"
+  when:
+    - (lxc_host_config_udev_rules | default([]) | length) > 0
+    - (_lxc_host_config_udev_rule.results | default([]) | selectattr('changed', 'equalto', true) | list | length) > 0
+  changed_when: true
+
+- name: Trigger udev on Proxmox node when rules changed
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['udevadm', 'trigger'] }}"
+  when:
+    - (lxc_host_config_udev_rules | default([]) | length) > 0
+    - (_lxc_host_config_udev_rule.results | default([]) | selectattr('changed', 'equalto', true) | list | length) > 0
+  changed_when: true
+
 - name: Check whether CT config exists on Proxmox node
   vars:
     _ssh_argv_head: >-
@@ -329,8 +405,12 @@
       status = subprocess.run(["pct", "status", vmid], check=False, capture_output=True, text=True)
       if status.returncode != 0:
           raise SystemExit(status.stderr.strip() or status.stdout.strip() or f"pct status failed for {vmid}")
-      if "running" in status.stdout.lower():
+      state = status.stdout.lower()
+      if "running" in state:
           subprocess.run(["pct", "stop", vmid], check=True)
+          subprocess.run(["pct", "start", vmid], check=True)
+          print("changed")
+      elif "stopped" in state:
           subprocess.run(["pct", "start", vmid], check=True)
           print("changed")
   ansible.builtin.command:
@@ -338,6 +418,41 @@
     stdin: "{{ _restart_program }}"
   when:
     - lxc_host_config_restart | default(false) | bool
-    - (_lxc_host_config_append.results | default([]) | selectattr('changed', 'equalto', true) | list | length) > 0
+    - >
+      (_lxc_host_config_append.results | default([]) | selectattr('changed', 'equalto', true) | list | length) > 0
+      or (_lxc_host_config_firewall is defined and (_lxc_host_config_firewall.changed | default(false) | bool))
   changed_when: "'changed' in (_lxc_host_config_restart.stdout | default(''))"
   register: _lxc_host_config_restart
+
+- name: Ensure CT is started on hypervisor
+  vars:
+    _ssh_argv_head: >-
+      {{
+        ['ssh']
+        + (
+            ['-i', _lxc_host_config_ssh_private_key]
+            if (_lxc_host_config_ssh_private_key | default('') | string | length) > 0
+            else []
+          )
+        + ['-o', 'BatchMode=yes', '-o', 'StrictHostKeyChecking=' ~ (lxc_host_config_ssh_strict_host_key_checking | string)]
+        + [_lxc_host_config_ssh_user ~ '@' ~ _lxc_host_config_node_address]
+      }}
+    _ensure_started_program: |
+      import subprocess
+      import sys
+
+      vmid = sys.argv[1]
+      status = subprocess.run(["pct", "status", vmid], check=False, capture_output=True, text=True)
+      if status.returncode != 0:
+          raise SystemExit(status.stderr.strip() or status.stdout.strip() or f"pct status failed for {vmid}")
+      if "stopped" in status.stdout.lower():
+          subprocess.run(["pct", "start", vmid], check=True)
+          print("changed")
+  ansible.builtin.command:
+    argv: "{{ _ssh_argv_head + ['python3', '-', (_lxc_host_config_vmid | string)] }}"
+    stdin: "{{ _ensure_started_program }}"
+  when:
+    - lxc_host_config_ensure_started | default(true) | bool
+    - (_lxc_host_config_conf_exists.rc | int) == 0
+  changed_when: "'changed' in (_lxc_host_config_ensure_started.stdout | default(''))"
+  register: _lxc_host_config_ensure_started

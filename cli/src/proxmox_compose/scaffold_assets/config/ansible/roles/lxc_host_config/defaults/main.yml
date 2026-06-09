@@ -4,6 +4,7 @@
 
 lxc_host_config_enable: false
 lxc_host_config_restart: false
+lxc_host_config_ensure_started: true
 lxc_apparmor_unconfined_enable: false
 lxc_apparmor_ubuntu_mask_enable: false
 lxc_tun_enable: false
@@ -37,6 +38,9 @@ lxc_host_config_firewall_enable: false
 lxc_host_config_firewall_options:
   - "enable: 1"
 lxc_host_config_firewall_rules: []
+
+# Optional: udev rules on the Proxmox node (list of {name, content}).
+lxc_host_config_udev_rules: []
 
 lxc_host_config_line_apparmor_unconfined: "lxc.apparmor.profile: unconfined"
 lxc_host_config_line_apparmor_ubuntu_mask: "lxc.mount.entry: /dev/null sys/module/apparmor/parameters/enabled none bind 0 0"
