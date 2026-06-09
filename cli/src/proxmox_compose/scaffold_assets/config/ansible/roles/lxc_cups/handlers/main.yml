@@ -1,0 +1,15 @@
+---
+- name: Restart cups
+  ansible.builtin.service:
+    name: cups
+    state: restarted
+
+- name: Restart cups-browsed
+  ansible.builtin.service:
+    name: cups-browsed
+    state: restarted
+
+- name: Restart avahi-daemon
+  ansible.builtin.service:
+    name: avahi-daemon
+    state: restarted

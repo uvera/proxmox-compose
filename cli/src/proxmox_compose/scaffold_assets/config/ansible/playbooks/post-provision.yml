@@ -39,6 +39,13 @@
   roles:
     - role: lxc_caddy_proxy
 
+- name: Configure CUPS print server on Debian LXCs
+  hosts: debian_lxcs
+  become: true
+  ignore_unreachable: true
+  roles:
+    - role: lxc_cups
+
 - name: Configure Docker workloads on VMs
   hosts: debian_vms:fedora_vms
   become: true

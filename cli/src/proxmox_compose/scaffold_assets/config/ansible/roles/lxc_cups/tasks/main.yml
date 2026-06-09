@@ -1,0 +1,165 @@
+---
+- name: Configure CUPS print server on LXC
+  when: lxc_cups_enable | bool
+  block:
+    - name: Install CUPS packages
+      ansible.builtin.apt:
+        update_cache: true
+        name:
+          - cups
+          - cups-client
+          - cups-browsed
+          - usbutils
+          - avahi-daemon
+          - printer-driver-gutenprint
+        state: present
+
+    - name: Ensure lpadmin group exists for CUPS administration
+      ansible.builtin.group:
+        name: lpadmin
+        state: present
+
+    - name: Ensure CUPS admin user exists
+      ansible.builtin.user:
+        name: "{{ lxc_cups_admin_user }}"
+        groups: lpadmin
+        append: true
+        shell: /bin/bash
+        create_home: true
+        password: "{{ lxc_cups_admin_password | password_hash('sha512') }}"
+        update_password: always
+      when:
+        - (lxc_cups_admin_user | default('') | string | length) > 0
+        - (lxc_cups_admin_password | default('') | string | length) > 0
+      no_log: true
+
+    - name: Write CUPS daemon configuration
+      ansible.builtin.template:
+        src: cupsd.conf.j2
+        dest: /etc/cups/cupsd.conf
+        owner: root
+        group: root
+        mode: "0640"
+      notify:
+        - Restart cups
+        - Restart cups-browsed
+
+    - name: Validate CUPS daemon configuration
+      ansible.builtin.command:
+        argv:
+          - cupsd
+          - -t
+      changed_when: false
+
+    - name: Ensure CUPS service is enabled and running
+      ansible.builtin.service:
+        name: cups
+        enabled: true
+        state: started
+
+    - name: Ensure cups-browsed is enabled and running
+      ansible.builtin.service:
+        name: cups-browsed
+        enabled: true
+        state: started
+      when: lxc_cups_share_lan | bool
+
+    - name: Ensure Avahi daemon is enabled and running
+      ansible.builtin.service:
+        name: avahi-daemon
+        enabled: true
+        state: started
+      when: lxc_cups_avahi_enable | bool
+
+    - name: Flush handlers before printer registration
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for USB printer backend URI
+      ansible.builtin.shell:
+        cmd: |
+          set -uo pipefail
+          uri=""
+          uri="$(lpinfo -v 2>/dev/null | grep -iE 'usb://' | head -n1 | awk '{print $2}' || true)"
+          if [ -z "$uri" ] && [ -x /usr/lib/cups/backend/usb ]; then
+            uri="$(/usr/lib/cups/backend/usb 2>/dev/null | awk '/^direct usb:\/\//{print $2; exit}' || true)"
+          fi
+          if [ -z "$uri" ]; then
+            exit 1
+          fi
+          printf '%s\n' "$uri"
+        executable: /bin/bash
+      register: _lxc_cups_usb_uri
+      retries: "{{ lxc_cups_usb_wait_retries }}"
+      delay: "{{ lxc_cups_usb_wait_delay }}"
+      until: (_lxc_cups_usb_uri.stdout | default('') | trim | length) > 0
+      changed_when: false
+
+    - name: Select CUPS PPD for printer
+      ansible.builtin.shell:
+        cmd: |
+          set -uo pipefail
+          {% if (lxc_cups_ppd | default('') | trim | length) > 0 %}
+          printf '%s\n' {{ lxc_cups_ppd | trim | to_json }}
+          exit 0
+          {% endif %}
+          model="{{ lxc_cups_ppd_model | trim }}"
+          if [ -z "$model" ]; then
+            exit 0
+          fi
+          line="$(lpinfo -m 2>/dev/null | grep -i 'gutenprint' | grep -i "$model" | head -n1 || true)"
+          if [ -n "$line" ]; then
+            awk '{print $1}' <<< "$line"
+          fi
+        executable: /bin/bash
+      register: _lxc_cups_ppd
+      changed_when: false
+
+    - name: Fail when CUPS PPD could not be resolved
+      ansible.builtin.assert:
+        that:
+          - (_lxc_cups_ppd.stdout | default('') | trim | length) > 0
+        fail_msg: >-
+          No Gutenprint PPD found for model token "{{ lxc_cups_ppd_model }}".
+          Set lxc_cups_ppd to an explicit lpinfo -m URI or install printer-driver-gutenprint.
+
+    - name: Register CUPS printer
+      ansible.builtin.shell:
+        cmd: |
+          set -euo pipefail
+          printer="{{ lxc_cups_printer_name }}"
+          uri="{{ (_lxc_cups_usb_uri.stdout | default('')) | trim }}"
+          ppd="{{ (_lxc_cups_ppd.stdout | default('') | trim) }}"
+          page_size="{{ lxc_cups_page_size | default('') | trim }}"
+          desired_model=""
+          if [ -n "$ppd" ]; then
+            desired_model="$(lpinfo -m 2>/dev/null | awk -v ppd="$ppd" '$1 == ppd { $1=""; sub(/^ /, ""); print; exit }')"
+          fi
+          current_uri=""
+          current_model=""
+          if lpstat -p "$printer" >/dev/null 2>&1; then
+            current_uri="$(lpstat -v "$printer" 2>/dev/null | awk -F': ' '/device for/ {print $2}')"
+            current_model="$(lpoptions -p "$printer" 2>/dev/null | sed -n "s/.*printer-make-and-model='\([^']*\)'.*/\1/p")"
+          fi
+          if [ -n "$current_uri" ] && [ "$current_uri" = "$uri" ] && { [ -z "$desired_model" ] || [ "$current_model" = "$desired_model" ]; }; then
+            echo "unchanged"
+          else
+            lpadmin -p "$printer" -E -v "$uri" -m "$ppd"
+            cupsenable "$printer"
+            cupsaccept "$printer"
+            echo "configured"
+          fi
+          if [ -n "$page_size" ]; then
+            lpadmin -p "$printer" -o "PageSize=$page_size"
+          fi
+          lpadmin -p "$printer" -o job-sheets=none,none -o printer-is-shared=true
+        executable: /bin/bash
+      register: _lxc_cups_printer_register
+      changed_when: "'configured' in (_lxc_cups_printer_register.stdout | default(''))"
+
+    - name: Set default CUPS printer
+      ansible.builtin.command:
+        argv:
+          - lpadmin
+          - -d
+          - "{{ lxc_cups_printer_name }}"
+      changed_when: false

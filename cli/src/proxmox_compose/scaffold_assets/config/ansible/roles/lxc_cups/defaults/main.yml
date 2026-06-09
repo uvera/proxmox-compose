@@ -1,0 +1,17 @@
+---
+lxc_cups_enable: false
+lxc_cups_printer_name: "network-printer"
+# Gutenprint lpinfo -m token (e.g. hp-lj_1010 for HP LaserJet 1010).
+lxc_cups_ppd_model: ""
+# Optional explicit PPD URI; leave empty to auto-select via lpinfo -m.
+lxc_cups_ppd: ""
+lxc_cups_page_size: A4
+lxc_cups_share_lan: true
+lxc_cups_avahi_enable: true
+# CUPS 2.4+ prefix notation for "Allow from" (e.g. "10.0.0." for 10.0.0.0/24).
+lxc_cups_allow_from: []
+lxc_cups_usb_wait_retries: 12
+lxc_cups_usb_wait_delay: 5
+# Optional: Linux user in lpadmin for CUPS web admin (@SYSTEM). Password from vault.
+lxc_cups_admin_user: ""
+lxc_cups_admin_password: ""
