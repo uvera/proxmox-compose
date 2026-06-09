@@ -41,6 +41,35 @@ Each entry must provide `module_args`, which are passed to:
 
 Destructive actions (`state: absent`) are blocked unless `proxmox_lifecycle_allow_absent: true`.
 
+### Organizing lifecycle declarations
+
+- Put `proxmox_lifecycle_vms` and `proxmox_lifecycle_lxcs` in a dedicated file such as `group_vars/all/lifecycle_lxcs.yml` rather than `main.yml`.
+- Do **not** set empty `proxmox_lifecycle_vms: []` or `proxmox_lifecycle_lxcs: []` in `main.yml` — Ansible merges group vars and an empty list in one file masks declarations in another.
+- See `group_vars/all/lifecycle.example.yml` for a starter template.
+
+### Shared LXC SSH pubkey
+
+Reuse one pubkey across lifecycle entries:
+
+```yaml
+proxmox_compose_lxc_pubkey: "{{ lookup('env', 'PROXMOX_COMPOSE_LXC_PUBKEY') | default(lookup('file', lookup('env', 'HOME') ~ '/.ssh/id_ed25519.pub'), true) }}"
+```
+
+Reference it in each LXC `module_args` as `pubkey: "{{ proxmox_compose_lxc_pubkey }}"`. Set `PROXMOX_COMPOSE_LXC_PUBKEY` in your environment or profile when the default key path is not suitable.
+
+### `state: started` entries
+
+Besides `state: present` (create/update), you can add lightweight entries with `state: started` to ensure a CT is running without full present reconciliation — useful for brownfield CTs managed outside lifecycle create:
+
+```yaml
+proxmox_lifecycle_lxcs:
+  - name: example-start-only
+    module_args:
+      state: started
+      node: pve
+      vmid: 210
+```
+
 ## Command Flow
 
 - `proxmox-compose plan`

@@ -54,6 +54,33 @@ During **`proxmox-compose apply`** and **`proxmox-compose provision-existing`**,
    - optional `lxc_host_config_ssh_user` / `lxc_host_config_ssh_private_key_file`
 3. Re-run **`proxmox-compose apply`** or **`proxmox-compose provision-existing`**.
 
+### CT firewall (opt-in)
+
+Role `lxc_host_config` can manage `/etc/pve/firewall/<vmid>.fw` on the Proxmox node. Enable the CT firewall in lifecycle `netif` (for example `firewall=1` on the veth line) and define rules in host vars:
+
+```yaml
+lxc_host_config_firewall_enable: true
+lxc_host_config_firewall_rules:
+  - "IN ACCEPT -p tcp -dport 22"
+  - "IN ACCEPT -source 10.0.0.10 -p tcp -dport 8080"
+  - "IN DROP -p tcp -dport 8080"
+```
+
+When `lxc_host_config_restart: true`, firewall file changes trigger a CT restart (same as conf-line changes). See `inventory/host_vars/example_lxc_firewall.yml`.
+
+### Host-side udev rules (opt-in)
+
+For USB or other device passthrough into an unprivileged LXC, you may need udev rules on the **Proxmox node** (not inside the CT). Role `lxc_host_config` can write `/etc/udev/rules.d/*` and reload udev:
+
+```yaml
+lxc_host_config_udev_rules:
+  - name: 99-example-device.rules
+    content: |
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666"
+```
+
+Pair with appropriate `lxc_host_config_extra_lines` bind mounts or cgroup device allowances for the target device.
+
 ## 3. Ansible: git / inline Compose on the LXC
 
 Same variable shape as VM Compose (`vm_compose_apps`), but use **`lxc_compose_apps`** in host vars (or group vars) for LXCs.

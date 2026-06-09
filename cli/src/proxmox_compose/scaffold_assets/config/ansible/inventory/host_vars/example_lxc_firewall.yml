@@ -1,0 +1,21 @@
+# Example: Proxmox CT firewall rules managed by lxc_host_config (group debian_lxcs).
+# Rename to match your inventory hostname.
+#
+# Prerequisites:
+# - Enable CT firewall in lifecycle netif, e.g. firewall=1 on the veth line.
+# - lxc_host_config_enable: true with vmid/node metadata (see example_provisioned_lxc.yml).
+
+lxc_host_config_enable: true
+lxc_host_config_vmid: 210
+lxc_host_config_node_name: pve
+lxc_host_config_node_addresses:
+  pve: 10.0.0.2
+
+lxc_host_config_firewall_enable: true
+lxc_host_config_firewall_rules:
+  - "IN ACCEPT -p tcp -dport 22"
+  - "IN ACCEPT -source 10.0.0.10 -p tcp -dport 8080"
+  - "IN DROP -p tcp -dport 8080"
+
+# Optional: restart CT when firewall rules change (same as conf-line changes).
+# lxc_host_config_restart: true

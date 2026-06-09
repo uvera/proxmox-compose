@@ -1,0 +1,33 @@
+# Example lifecycle declarations for role proxmox_lifecycle.
+# Copy relevant sections into your own group_vars file (e.g. lifecycle_lxcs.yml).
+# Do not leave empty proxmox_lifecycle_* lists in main.yml — they mask this file.
+
+# Shared SSH pubkey for LXC root access (override via PROXMOX_COMPOSE_LXC_PUBKEY env).
+# proxmox_compose_lxc_pubkey: "{{ lookup('env', 'PROXMOX_COMPOSE_LXC_PUBKEY') | default(lookup('file', lookup('env', 'HOME') ~ '/.ssh/id_ed25519.pub'), true) }}"
+
+# proxmox_lifecycle_lxcs:
+#   - name: example-app
+#     module_args:
+#       state: present
+#       node: pve
+#       vmid: 210
+#       hostname: example-app
+#       ostemplate: "local:vztmpl/debian-12-standard_12.7-1_amd64.tar.zst"
+#       storage: local-lvm
+#       disk: "local-lvm:8"
+#       memory: 1024
+#       swap: 0
+#       cores: 1
+#       onboot: true
+#       unprivileged: true
+#       netif:
+#         net0: "name=eth0,bridge=vmbr0,gw=10.0.0.1,ip=10.0.0.210/24,type=veth,firewall=1"
+#       features:
+#         - "nesting=1"
+#       pubkey: "{{ proxmox_compose_lxc_pubkey }}"
+#
+#   - name: example-start-only
+#     module_args:
+#       state: started
+#       node: pve
+#       vmid: 211
