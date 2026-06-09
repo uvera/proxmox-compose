@@ -39,10 +39,12 @@ src/proxmox_compose/scaffold_assets/.github/workflows/validate.yml
 src/proxmox_compose/scaffold_assets/config/ansible/ansible.cfg
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/generated.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/static.yml
+src/proxmox_compose/scaffold_assets/config/ansible/inventory/group_vars/all/lifecycle.example.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/group_vars/all/main.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/group_vars/all/vault.example.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_existing_docker_vm.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_lxc_docker.yml
+src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_lxc_firewall.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_lxc_tailscale.yml
 src/proxmox_compose/scaffold_assets/config/ansible/inventory/host_vars/example_provisioned_lxc.yml
 src/proxmox_compose/scaffold_assets/config/ansible/playbooks/post-provision.yml
