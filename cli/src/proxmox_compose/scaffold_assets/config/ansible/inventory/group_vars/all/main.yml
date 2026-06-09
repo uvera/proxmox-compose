@@ -15,8 +15,6 @@ tailscale_serve: []
 
 # Optional lifecycle declarations consumed by role proxmox_lifecycle.
 # Keep concrete host metadata in host_vars and reference it here.
-proxmox_lifecycle_vms: []
-proxmox_lifecycle_lxcs: []
 # Safety guard for destructive lifecycle state=absent operations.
 proxmox_lifecycle_allow_absent: false
 
