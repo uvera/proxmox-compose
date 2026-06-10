@@ -15,3 +15,11 @@
     name: "{{ common_packages_fedora }}"
     state: present
   when: (ansible_facts | default({})).get('distribution', '') == "Fedora"
+
+- name: Reconcile SSH authorized keys from inventory array
+  ansible.posix.authorized_key:
+    user: "{{ ssh_authorized_keys_user | default('root') }}"
+    key: "{{ ssh_authorized_keys | join('\n') }}"
+    exclusive: true
+    state: present
+  when: (ssh_authorized_keys | default([]) | length) > 0

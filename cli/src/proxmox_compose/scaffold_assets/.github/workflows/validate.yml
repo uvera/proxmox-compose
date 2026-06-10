@@ -11,12 +11,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Ansible syntax check (provision-infra)
+      - name: Install Ansible and collections
         run: |
           pip install ansible-core
+          cd config/ansible
+          ansible-galaxy collection install -r collections/requirements.yml
+      - name: Ansible syntax check (provision-infra)
+        run: |
           cd config/ansible
           ansible-playbook -i inventory/static.yml playbooks/provision-infra.yml --syntax-check
       - name: Ansible syntax check (post-provision)
         run: |
           cd config/ansible
           ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check
+      - name: Ansible syntax check (provision-existing)
+        run: |
+          cd config/ansible
+          ansible-playbook -i inventory/static.yml playbooks/provision-existing.yml --syntax-check

@@ -112,7 +112,17 @@ proxmox.example.ts.net {
 Use this when you want explicit Caddy reverse-proxy behavior while still managing TUN/Tailscale declaratively
 in LXC host vars.
 
-## 6. Further reading
+## 6. Mobile SSH (NovaAccess)
+
+For SSH from a phone over the tailnet with OpenSSH key auth (not Tailscale SSH), see [mobile-ssh.md](mobile-ssh.md). Typical flow:
+
+1. Enable `tailscale_enable: true` and `lxc_tun_enable: true` on each LXC.
+2. Add device pubkeys to `ssh_authorized_keys_vault` in vault.
+3. Run `proxmox-compose apply --workspace .` (or `provision-existing` for brownfield `existing_hosts` only).
+4. Configure NovaAccess hosts using MagicDNS names.
+
+## 7. Further reading
 
 - [Tailscale Serve (CLI)](https://tailscale.com/kb/1242/tailscale-serve/)
 - [Tailscale Funnel](https://tailscale.com/kb/1223/tailscale-funnel/)
+- [mobile-ssh.md](mobile-ssh.md) — NovaAccess + `ssh_authorized_keys` array

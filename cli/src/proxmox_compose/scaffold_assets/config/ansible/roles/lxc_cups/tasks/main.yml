@@ -74,6 +74,16 @@
     - name: Flush handlers before printer registration
       ansible.builtin.meta: flush_handlers
 
+    - name: Require CUPS printer driver configuration
+      ansible.builtin.assert:
+        that:
+          - (lxc_cups_ppd | default('') | trim | length) > 0
+            or (lxc_cups_ppd_model | default('') | trim | length) > 0
+        fail_msg: >-
+          lxc_cups_enable is true but no printer driver is configured.
+          Set lxc_cups_ppd_model (Gutenprint lpinfo -m token) or lxc_cups_ppd
+          to an explicit lpinfo -m URI in host_vars.
+
     - name: Wait for USB printer backend URI
       ansible.builtin.shell:
         cmd: |
@@ -119,7 +129,7 @@
         that:
           - (_lxc_cups_ppd.stdout | default('') | trim | length) > 0
         fail_msg: >-
-          No Gutenprint PPD found for model token "{{ lxc_cups_ppd_model }}".
+          No Gutenprint PPD found for model token "{{ lxc_cups_ppd_model | default('') }}".
           Set lxc_cups_ppd to an explicit lpinfo -m URI or install printer-driver-gutenprint.
 
     - name: Register CUPS printer

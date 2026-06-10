@@ -1,5 +1,24 @@
 ansible_python_interpreter: /usr/bin/python3
 
+# Declarative SSH public keys (see docs/mobile-ssh.md). Override ssh_authorized_keys in host_vars to replace the merged list.
+ssh_authorized_keys_user: root
+ssh_authorized_keys_base:
+  - "{{ proxmox_compose_lxc_pubkey | default('') }}"
+ssh_authorized_keys_extra: []
+ssh_authorized_keys: >-
+  {{
+    (
+      (ssh_authorized_keys_base | default([]))
+      + (ssh_authorized_keys_extra | default([]))
+      + (ssh_authorized_keys_vault | default([]))
+    )
+    | select('string')
+    | map('trim')
+    | reject('equalto', '')
+    | unique
+    | list
+  }}
+
 vm_compose_apps: []
 
 lxc_compose_apps: []

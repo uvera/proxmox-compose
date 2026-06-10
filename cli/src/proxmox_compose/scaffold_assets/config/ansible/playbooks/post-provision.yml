@@ -11,11 +11,13 @@
   hosts: debian_vms:fedora_vms:debian_lxcs
   gather_facts: false
   become: true
+  ignore_unreachable: true
   pre_tasks:
     - name: Wait for SSH connectivity after host-side CT changes
       ansible.builtin.wait_for_connection:
-        timeout: 300
+        timeout: "{{ post_provision_ssh_wait_timeout | default(300) }}"
         delay: 5
+      when: post_provision_wait_for_connection | default(lxc_host_config_ensure_started | default(true)) | bool
 
     - name: Clear stale facts from prior local-connection play
       ansible.builtin.meta: clear_facts

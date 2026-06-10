@@ -11,3 +11,7 @@ common_packages_fedora:
   - htop
   - jq
   - python3
+
+ssh_authorized_keys_user: root
+ssh_authorized_keys_base: []
+ssh_authorized_keys_extra: []

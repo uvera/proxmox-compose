@@ -11,6 +11,15 @@
 # Tailscale node auth (pre-approved key). Use with tailscale_enable: true in host_vars.
 # tailscale_authkey: "tskey-auth-..."
 
+# SSH public keys for mobile/operator devices (NovaAccess, tablet, etc.).
+# Private keys stay on devices; pubkeys are deployed via role common (ssh_authorized_keys).
+# ssh_authorized_keys_vault:
+#   - "ssh-ed25519 AAAA... novaaccess-phone"
+#
+# CUPS print-server web admin (lpadmin group on print-server LXC):
+# vault_cups_admin_user: cupsadmin
+# vault_cups_admin_password: "change-me"
+
 # frigate_env_content: |
 #   MQTT_PASSWORD=...
 #   OPENAI_API_KEY=...

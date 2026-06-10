@@ -22,3 +22,10 @@
   ignore_unreachable: true
   roles:
     - role: vm_docker
+
+- name: Configure CUPS print server on Debian LXCs
+  hosts: debian_lxcs
+  become: true
+  ignore_unreachable: true
+  roles:
+    - role: lxc_cups

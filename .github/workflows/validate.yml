@@ -17,6 +17,10 @@ jobs:
         run: pip install pytest typer PyYAML textual ansible-core
       - name: Run CLI tests
         run: PYTHONPATH=cli/src python -m pytest cli/tests -q
+      - name: Install Ansible collections
+        run: |
+          cd cli/src/proxmox_compose/scaffold_assets/config/ansible
+          ansible-galaxy collection install -r collections/requirements.yml
       - name: Ansible syntax check (provision-infra)
         run: |
           cd cli/src/proxmox_compose/scaffold_assets/config/ansible
@@ -25,3 +29,7 @@ jobs:
         run: |
           cd cli/src/proxmox_compose/scaffold_assets/config/ansible
           ansible-playbook -i inventory/static.yml playbooks/post-provision.yml --syntax-check
+      - name: Ansible syntax check (provision-existing)
+        run: |
+          cd cli/src/proxmox_compose/scaffold_assets/config/ansible
+          ansible-playbook -i inventory/static.yml playbooks/provision-existing.yml --syntax-check

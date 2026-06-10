@@ -34,6 +34,10 @@ lxc_host_config_ssh_user: root
 # lxc_caddy_proxy_upstream_tls_insecure_skip_verify: false
 #
 # Optional: CUPS print server with USB passthrough (requires host-side CT config).
+# USB-dependent CTs: do not auto-start when hardware is unplugged; skip SSH wait during apply.
+# lxc_host_config_ensure_started: false
+# lxc_host_config_restart: false
+# post_provision_wait_for_connection: false
 # lxc_cups_enable: true
 # lxc_cups_printer_name: HP-LaserJet-1010
 # lxc_cups_ppd_model: hp-lj_1010
@@ -41,6 +45,12 @@ lxc_host_config_ssh_user: root
 #   - "10.0.0."
 # lxc_cups_admin_user: "{{ vault_cups_admin_user }}"
 # lxc_cups_admin_password: "{{ vault_cups_admin_password }}"
+# Bus number from host `lsusb` (e.g. Bus 003); update if the printer is replugged.
+# lxc_cups_usb_bus: "003"
 # lxc_host_config_extra_lines:
 #   - "lxc.cgroup2.devices.allow: c 189:* rwm"
-#   - "lxc.mount.entry: /dev/bus/usb/003 dev/bus/usb/003 none bind,optional,create=dir"
+#   - "lxc.mount.entry: /dev/bus/usb/{{ lxc_cups_usb_bus }} dev/bus/usb/{{ lxc_cups_usb_bus }} none bind,optional,create=dir"
+# lxc_host_config_udev_rules:
+#   - name: 99-example-printer.rules
+#     content: |
+#       SUBSYSTEM=="usb", ATTR{idVendor}=="03f0", ATTR{idProduct}=="0c17", SYMLINK+="example-printer", MODE="0666"
