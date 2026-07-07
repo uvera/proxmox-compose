@@ -66,7 +66,11 @@
     api_token_id: "{{ proxmox_lifecycle_api_token_id }}"
     api_token_secret: "{{ proxmox_lifecycle_api_token_secret }}"
     validate_certs: "{{ proxmox_lifecycle_validate_certs }}"
-  args: "{{ item.module_args }}"
+  # community.proxmox 2.0.0 drops the sentinel cmode='default' only on create,
+  # not on update, so reconciling an existing LXC sends cmode=default and the
+  # Proxmox API rejects it (only shell/console/tty are valid). Default to tty
+  # (pct's default) unless an entry overrides cmode explicitly.
+  args: "{{ {'cmode': 'tty'} | combine(item.module_args) }}"
   loop: "{{ _proxmox_lifecycle_lxcs }}"
   loop_control:
     label: "{{ item.name | default(item.module_args.hostname | default('lxc')) }}"
