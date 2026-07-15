@@ -29,6 +29,7 @@ def test_apply_command_runs_full_flow(monkeypatch, tmp_path: Path) -> None:
         ws: Path,
         ssh_key_path: Path | None = None,
         limit: str | None = None,
+        verbosity: int = 0,
     ) -> None:
         ansible_calls.append(
             {
@@ -36,12 +37,13 @@ def test_apply_command_runs_full_flow(monkeypatch, tmp_path: Path) -> None:
             "workspace": ws,
             "ssh_key_path": ssh_key_path,
             "limit": limit,
+            "verbosity": verbosity,
             }
         )
 
     monkeypatch.setattr(apply_module, "run_ansible_playbook", _record_ansible)
 
-    apply_module.apply_command(workspace=workspace, profile="default", host=None)
+    apply_module.apply_command(workspace=workspace, profile="default", host=None, verbose=0)
 
     assert calls["sync_workspace"] == workspace
     assert ansible_calls == [
@@ -50,12 +52,14 @@ def test_apply_command_runs_full_flow(monkeypatch, tmp_path: Path) -> None:
             "workspace": workspace,
             "ssh_key_path": None,
             "limit": None,
+            "verbosity": 0,
         },
         {
             "playbook": workspace / "config/ansible/playbooks/post-provision.yml",
             "workspace": workspace,
             "ssh_key_path": None,
             "limit": None,
+            "verbosity": 0,
         },
     ]
 
@@ -72,6 +76,7 @@ def test_apply_command_passes_host_limit_to_ansible(monkeypatch, tmp_path: Path)
         ws: Path,
         ssh_key_path: Path | None = None,
         limit: str | None = None,
+        verbosity: int = 0,
     ) -> None:
         ansible_calls.append(
             {
@@ -83,7 +88,7 @@ def test_apply_command_passes_host_limit_to_ansible(monkeypatch, tmp_path: Path)
 
     monkeypatch.setattr(apply_module, "run_ansible_playbook", _record_ansible)
 
-    apply_module.apply_command(workspace=workspace, profile="default", host="app-1")
+    apply_module.apply_command(workspace=workspace, profile="default", host="app-1", verbose=0)
 
     assert ansible_calls == [
         {

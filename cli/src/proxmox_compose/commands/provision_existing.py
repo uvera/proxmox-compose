@@ -29,6 +29,13 @@ def provision_existing_command(
         "-p",
         help="Profile from ~/.config/proxmox-compose/profiles.yml",
     ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Increase Ansible verbosity (-v shows task stdout, repeat for more).",
+    ),
 ) -> None:
     """Converge already-existing hosts without creating new infra."""
     ctx = prepare_run(workspace, profile)
@@ -47,4 +54,5 @@ def provision_existing_command(
         ctx.paths.provision_existing_playbook,
         ctx.paths.workspace,
         ssh_key_path=ctx.ssh_key_path,
+        verbosity=verbose,
     )

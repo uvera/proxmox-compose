@@ -8,6 +8,7 @@ def _common_cmd(
     workspace: Path,
     ssh_key_path: Path | None = None,
     limit: str | None = None,
+    verbosity: int = 0,
 ) -> list[str]:
     workspace = workspace.resolve()
     playbook = playbook.resolve()
@@ -21,6 +22,8 @@ def _common_cmd(
         command.extend(["--private-key", str(ssh_key_path)])
     if limit:
         command.extend(["--limit", limit])
+    if verbosity > 0:
+        command.append("-" + "v" * verbosity)
     return command
 
 
@@ -73,9 +76,10 @@ def run_ansible_check(
     workspace: Path,
     ssh_key_path: Path | None = None,
     limit: str | None = None,
+    verbosity: int = 0,
 ) -> None:
     cmd, cleanup = _with_vault_password_file(
-        _common_cmd(playbook, workspace, ssh_key_path, limit=limit) + ["--check"]
+        _common_cmd(playbook, workspace, ssh_key_path, limit=limit, verbosity=verbosity) + ["--check"]
     )
     try:
         run_command(
@@ -91,9 +95,10 @@ def run_ansible_playbook(
     workspace: Path,
     ssh_key_path: Path | None = None,
     limit: str | None = None,
+    verbosity: int = 0,
 ) -> None:
     cmd, cleanup = _with_vault_password_file(
-        _common_cmd(playbook, workspace, ssh_key_path, limit=limit)
+        _common_cmd(playbook, workspace, ssh_key_path, limit=limit, verbosity=verbosity)
     )
     try:
         run_command(

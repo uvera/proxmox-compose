@@ -26,6 +26,13 @@ def apply_command(
         "-H",
         help="Limit post-provision Ansible convergence to a host pattern.",
     ),
+    verbose: int = typer.Option(
+        0,
+        "--verbose",
+        "-v",
+        count=True,
+        help="Increase Ansible verbosity (-v shows task stdout, repeat for more).",
+    ),
 ) -> None:
     """Run inventory sync plus Ansible provisioning/convergence."""
     ctx = prepare_run(workspace, profile)
@@ -34,10 +41,12 @@ def apply_command(
         ctx.paths.provision_infra_playbook,
         ctx.paths.workspace,
         ssh_key_path=ctx.ssh_key_path,
+        verbosity=verbose,
     )
     run_ansible_playbook(
         ctx.paths.post_provision_playbook,
         ctx.paths.workspace,
         ssh_key_path=ctx.ssh_key_path,
         limit=host,
+        verbosity=verbose,
     )
