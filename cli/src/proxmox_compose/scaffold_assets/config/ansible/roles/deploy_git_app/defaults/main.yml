@@ -1,5 +1,9 @@
 deploy_git_apps: "{{ vm_compose_apps | default([]) }}"
 deploy_git_app_enable_compose: true
+# become_method used for per-app `post_deploy_commands` (run as the app's `owner`).
+# "su" matches lxc_python_become_method's default since minimal Debian LXC images often lack sudo.
+# Override per app with `post_deploy_become_method`.
+deploy_git_app_post_deploy_become_method: su
 # When true, skip community.docker.docker_compose_v2 (optional extra var for ad-hoc Ansible runs).
 deploy_git_app_skip_compose: false
 deploy_git_app_ensure_groups: true
@@ -9,6 +13,9 @@ deploy_git_app_git_clone_depth: 1
 # Whether to discard local working tree changes before checkout/update.
 # Can be overridden per app with `git_force`.
 deploy_git_app_git_force: false
+
+# Optional list of systemd unit names on a git app entry (`restart_services`).
+# Restarted after post_deploy_commands when that app's checkout or managed files changed.
 
 # HTTPS token auth (optional): set per-app `git_token` in inventory, and/or export the
 # env var named below via ~/.config/proxmox-compose/profiles.yml. Do not put secrets in

@@ -144,6 +144,23 @@
   loop: "{{ deploy_git_apps | default([]) }}"
   loop_control:
     label: "{{ item.dest }}"
+  register: _deploy_git_app_checkout_results
+
+- name: Ensure git checkout trees are owned by the declared app owner
+  ansible.builtin.file:
+    path: "{{ item.dest }}"
+    state: directory
+    owner: "{{ item.owner }}"
+    group: "{{ item.group | default(item.owner) }}"
+    recurse: true
+  loop: "{{ deploy_git_apps | default([]) }}"
+  loop_control:
+    label: "{{ item.dest }}"
+  when:
+    - item.dest is defined
+    - item.owner is defined
+    - (item.owner | string | length) > 0
+    - item.owner != "root"
 
 - name: Write inline compose files when provided
   ansible.builtin.copy:
@@ -218,6 +235,71 @@
           (_deploy_git_app_managed_file_content_writes.results | default([]))
           + (_deploy_git_app_managed_file_src_writes.results | default([]))
         }}
+
+- name: Track which git app checkouts changed
+  ansible.builtin.set_fact:
+    _deploy_git_app_checkout_changed_dests: >-
+      {{
+        _deploy_git_app_checkout_results.results
+        | default([])
+        | selectattr('changed', 'equalto', true)
+        | map(attribute='item')
+        | selectattr('dest', 'defined')
+        | map(attribute='dest')
+        | list
+      }}
+
+- name: Track which managed files changed per app
+  ansible.builtin.set_fact:
+    _deploy_git_app_managed_file_changed_dests: >-
+      {{
+        _deploy_git_app_managed_file_writes.results
+        | default([])
+        | selectattr('changed', 'equalto', true)
+        | map(attribute='item')
+        | map('first')
+        | selectattr('dest', 'defined')
+        | map(attribute='dest')
+        | list
+      }}
+
+- name: Determine apps needing post-deploy hook
+  ansible.builtin.set_fact:
+    _deploy_git_app_post_deploy_changed_dests: >-
+      {{
+        (
+          (_deploy_git_app_checkout_changed_dests | default([]))
+          + (_deploy_git_app_managed_file_changed_dests | default([]))
+        )
+        | unique
+        | list
+      }}
+
+- name: Run post-deploy commands for git apps (checkout or managed files changed)
+  ansible.builtin.command: "{{ item.1 }}"
+  args:
+    chdir: "{{ item.0.dest }}"
+  become: true
+  become_user: "{{ item.0.owner | default('root') }}"
+  become_method: "{{ item.0.post_deploy_become_method | default(deploy_git_app_post_deploy_become_method) }}"
+  no_log: "{{ item.0.post_deploy_no_log | default(false) }}"
+  when:
+    - item.0.dest in (_deploy_git_app_post_deploy_changed_dests | default([]))
+    - (item.1 | default('') | string | length) > 0
+  loop: "{{ deploy_git_apps | default([]) | subelements('post_deploy_commands', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.0.dest }} :: {{ item.1 }}"
+
+- name: Restart systemd units after post-deploy (checkout or managed files changed)
+  ansible.builtin.service:
+    name: "{{ item.1 }}"
+    state: restarted
+  loop: "{{ deploy_git_apps | default([]) | subelements('restart_services', skip_missing=true) }}"
+  loop_control:
+    label: "{{ item.0.dest }} :: {{ item.1 }}"
+  when:
+    - item.0.dest in (_deploy_git_app_post_deploy_changed_dests | default([]))
+    - (item.1 | default('') | string | length) > 0
 
 - name: Check Docker Compose v2 CLI availability
   ansible.builtin.command:
@@ -334,3 +416,14 @@
     - item.item.0.compose | default(true)
     - item.changed | bool
     - item.item.1.restart_compose | default(false) | bool
+
+- name: Restart systemd unit when managed file requires restart
+  ansible.builtin.service:
+    name: "{{ item.item.1.restart_service }}"
+    state: restarted
+  loop: "{{ _deploy_git_app_managed_file_writes.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.0.dest }} :: {{ item.item.1.dest }} -> {{ item.item.1.restart_service | default('') }}"
+  when:
+    - item.changed | bool
+    - (item.item.1.restart_service | default('') | length) > 0

@@ -43,7 +43,21 @@
 
       dollar = "$" + tag + "$" + pwd + "$" + tag + "$"
       ident = '"' + role.replace("\\", "\\\\").replace('"', '\\"') + '"'
-      sql = "ALTER ROLE {} WITH LOGIN PASSWORD {};".format(ident, dollar)
+      role_literal = role.replace("'", "''")
+      check = subprocess.run(
+          [
+              "/usr/bin/psql",
+              "-d",
+              "postgres",
+              "-Atqc",
+              "SELECT 1 FROM pg_roles WHERE rolname = '{}'".format(role_literal),
+          ],
+          check=True,
+          capture_output=True,
+          text=True,
+      )
+      verb = "ALTER" if check.stdout.strip() == "1" else "CREATE"
+      sql = "{} ROLE {} WITH LOGIN PASSWORD {};".format(verb, ident, dollar)
 
       subprocess.run(
           [
@@ -76,6 +90,78 @@
     executable: /bin/bash
   loop: "{{ lxc_postgresql_databases }}"
   when: lxc_postgresql_databases | length > 0
+
+- name: Ensure declared system groups exist
+  ansible.builtin.group:
+    name: "{{ item.group | default(item.name) }}"
+    state: present
+    system: "{{ item.system | default(true) }}"
+  loop: "{{ lxc_system_users }}"
+  loop_control:
+    label: "{{ item.group | default(item.name) }}"
+  when:
+    - lxc_system_users | length > 0
+    - (item.group | default(item.name)) != "root"
+
+- name: Ensure declared system users exist
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    group: "{{ item.group | default(item.name) }}"
+    create_home: "{{ item.create_home | default(true) }}"
+    shell: "{{ item.shell | default('/bin/bash') }}"
+    system: "{{ item.system | default(true) }}"
+    home: "{{ item.home | default(omit) }}"
+  loop: "{{ lxc_system_users }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when:
+    - lxc_system_users | length > 0
+    - item.name is defined
+    - item.name != "root"
+
+- name: Ensure runtime data directories exist
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default(item.owner | default('root')) }}"
+    mode: "{{ item.mode | default('0755') }}"
+  loop: "{{ lxc_runtime_dirs }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Ensure systemd override directories exist for declared units
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ item.unit }}.d"
+    state: directory
+    mode: "0755"
+  loop: "{{ lxc_systemd_overrides }}"
+  loop_control:
+    label: "{{ item.unit }}"
+
+- name: Install systemd unit overrides
+  ansible.builtin.copy:
+    dest: "/etc/systemd/system/{{ item.unit }}.d/{{ item.filename | default('override.conf') }}"
+    content: "{{ item.content }}"
+    mode: "0644"
+  loop: "{{ lxc_systemd_overrides }}"
+  loop_control:
+    label: "{{ item.unit }}"
+  register: _lxc_systemd_override_writes
+
+- name: Reload systemd after unit overrides change
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: _lxc_systemd_override_writes.changed | default(false)
+
+- name: Restart units with changed overrides
+  ansible.builtin.service:
+    name: "{{ item.item.unit }}"
+    state: restarted
+  loop: "{{ _lxc_systemd_override_writes.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.unit }}"
+  when: item.changed | default(false)
 
 - name: Deploy app repositories for service workloads
   ansible.builtin.include_role:
@@ -394,17 +480,6 @@
     - item.environment_file is defined
   changed_when: false
   no_log: true
-
-- name: Ensure runtime data directories exist
-  ansible.builtin.file:
-    path: "{{ item.path }}"
-    state: directory
-    owner: "{{ item.owner | default('root') }}"
-    group: "{{ item.group | default(item.owner | default('root')) }}"
-    mode: "{{ item.mode | default('0755') }}"
-  loop: "{{ lxc_runtime_dirs }}"
-  loop_control:
-    label: "{{ item.path }}"
 
 - name: Install systemd unit files
   ansible.builtin.template:

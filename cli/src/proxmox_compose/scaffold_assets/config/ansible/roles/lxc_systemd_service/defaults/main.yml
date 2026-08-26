@@ -4,6 +4,10 @@ lxc_packages:
 
 lxc_git_apps: []
 
+# List of { name, group?, shell?, system?, create_home?, home? } — created before git checkout
+# so lxc_git_apps owner/group and post_deploy_commands (become su) have a login-capable user.
+lxc_system_users: []
+
 lxc_python_apps: []
 lxc_python_become_method: su
 
@@ -18,8 +22,17 @@ lxc_systemd_services: []
 # (for example env vars like DAEMON_STATE_DIR) when the package install does not create them.
 lxc_runtime_dirs: []
 
+# List of { unit, filename?, content } — writes /etc/systemd/system/<unit>.d/<filename>
+# (default filename "override.conf"), reloads systemd, and restarts <unit> when the
+# drop-in changes. Use to make package-provided units reboot-safe when they depend on a
+# tmpfs path that systemd-tmpfiles may not have recreated yet by the time the unit starts
+# — an ExecStartPre that (re)creates the path is more reliable than depending on
+# tmpfiles.d ordering alone.
+lxc_systemd_overrides: []
+
 # List of { name: <role>, password: <secret> } — applied with local peer auth as the
-# postgres OS user. Use the same values as in DATABASE_URL (or related env) for the app.
+# postgres OS user. Creates the role if missing, otherwise ALTER ROLE (password + LOGIN).
+# Use the same password as in the app env / DATABASE_URL.
 lxc_postgresql_role_updates: []
 
 # List of { name: <db>, owner: <role> } — created if missing (simple identifiers only).
